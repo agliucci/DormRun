@@ -34,3 +34,6 @@ Config.xcconfig
 supabase/.branches
 supabase/.temp
 scripts/.scrape.env
+.build/
+__pycache__/
+*.pyc
