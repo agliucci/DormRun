@@ -1,0 +1,39 @@
+# Minimal Supabase CLI config for UMass Eats.
+project_id = "umass-eats"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["umasseats://auth-callback"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+
+[edge_runtime]
+enabled = true
+
+[functions.transition-order]
+verify_jwt = true
+
+# Scheduled menu scrape — auth via x-cron-secret, not user JWT.
+[functions.scrape-menus]
+verify_jwt = false

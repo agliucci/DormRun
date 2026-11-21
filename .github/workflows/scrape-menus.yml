@@ -1,0 +1,49 @@
+name: Scrape UMass menus
+
+# Always-on menu refresh for the published DormRun app (independent of your Mac).
+on:
+  schedule:
+    # Every 3 hours
+    - cron: "0 */3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Scrape + push menus to Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -n "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            python3 scripts/scrape_umass.py --push
+          else
+            python3 scripts/scrape_umass.py
+          fi
+
+      - name: Commit bundled catalog fallback
+        run: |
+          git config user.name "dormrun-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add \
+            "College Eats/Services/Mock/GeneratedUMassCatalog.swift" \
+            supabase/seed_buildings.sql \
+            supabase/seed_menus_scraped.sql \
+            scripts/last_scrape.json \
+            || true
+          if git diff --staged --quiet; then
+            echo "No catalog file changes."
+          else
+            git commit -m "chore: refresh DormRun dining menus"
+            git push
+          fi

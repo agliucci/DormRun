@@ -1,0 +1,25 @@
+{
+  "buildings": 51,
+  "menus": {
+    "worcester": {
+      "meal": "Lunch",
+      "stations": 10,
+      "items": 43
+    },
+    "franklin": {
+      "meal": "Lunch",
+      "stations": 13,
+      "items": 53
+    },
+    "berkshire": {
+      "meal": "Lunch",
+      "stations": 11,
+      "items": 38
+    },
+    "hampshire": {
+      "meal": "Lunch",
+      "stations": 13,
+      "items": 51
+    }
+  }
+}

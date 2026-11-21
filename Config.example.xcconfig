@@ -1,0 +1,14 @@
+// Copy to Config.xcconfig (gitignored) and fill in values.
+// Xcode → Project → Info → Configurations → based on Config.xcconfig
+// Then add to target Info values:
+//   SUPABASE_URL = $(SUPABASE_URL)
+//   SUPABASE_ANON_KEY = $(SUPABASE_ANON_KEY)
+//   STRIPE_PUBLISHABLE_KEY = $(STRIPE_PUBLISHABLE_KEY)
+
+SUPABASE_URL = https://YOUR_PROJECT.supabase.co
+SUPABASE_ANON_KEY = your-anon-key
+STRIPE_PUBLISHABLE_KEY = pk_test_your_key
+
+// Optional Info.plist injection helpers (reference these from build settings):
+// INFOPLIST_KEY_SUPABASE_URL isn't supported for custom keys — use INFOPLIST_FILE
+// or User-Defined settings + Info.plist entries instead.
