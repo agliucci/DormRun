@@ -55,20 +55,16 @@ enum MockCatalogData {
         .init(id: "d0000000-0000-4000-8000-000000000005", campusId: campusId, name: "Blue Wall", type: .retail, neighborhood: "Campus Center",
               imageAssetName: "DiningBlueWall",
               latitude: 42.3918, longitude: -72.5260, hours: lateHours, busyLevel: .high),
-        .init(id: "d0000000-0000-4000-8000-000000000006", campusId: campusId, name: "Cosmic Café", type: .retail, neighborhood: "Library",
-              imageAssetName: "DiningCosmic",
-              latitude: 42.3898, longitude: -72.5282, hours: lateHours, busyLevel: .low),
+        .init(id: "d0000000-0000-4000-8000-000000000006", campusId: campusId, name: "Terrace", type: .retail, neighborhood: "Fieldstone",
+              imageAssetName: "DiningTerrace",
+              latitude: 42.3889, longitude: -72.5294, hours: lateHours, busyLevel: .medium),
     ]
 
     static func menus(for locationId: String) -> [MenuCategory] {
         if let scraped = GeneratedUMassCatalog.menus(for: locationId) {
             return scraped
         }
-        switch locationId {
-        case "d0000000-0000-4000-8000-000000000005": return blueWallMenu
-        case "d0000000-0000-4000-8000-000000000006": return cosmicMenu
-        default: return []
-        }
+        return []
     }
 
     static let demoCustomer = UserProfile(
@@ -93,63 +89,4 @@ enum MockCatalogData {
         avatarURL: URL(string: "https://i.pravatar.cc/150?u=maya")
     )
 
-    // MARK: - Retail menus (commons come from GeneratedUMassCatalog / scrape)
-
-    private static let blueWallMenu: [MenuCategory] = [
-        MenuCategory(id: "bw-quick", locationId: "d0000000-0000-4000-8000-000000000005", name: "Quick Bites", sortOrder: 0, items: [
-            item("bwi-1", "bw-quick", "Personal Pepperoni Pizza", "Crispy edge, lots of cheese.", 899, [], "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600"),
-            item("bwi-2", "bw-quick", "Chicken Quesadilla", "Pepper jack, salsa, sour cream.", 849, [.halal], "https://images.unsplash.com/photo-1618040996337-56904b7850b9?w=600"),
-            item("bwi-3", "bw-quick", "Soft Serve Cup", "Vanilla-chocolate twist.", 349, [.vegetarian], "https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=600"),
-        ]),
-    ]
-
-    private static let cosmicMenu: [MenuCategory] = [
-        MenuCategory(id: "cc-drinks", locationId: "d0000000-0000-4000-8000-000000000006", name: "Café", sortOrder: 0, items: [
-            item("ci-1", "cc-drinks", "Iced Oat Latte", "Double shot, oat milk, no syrup drama.", 495, [.vegan], "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=600"),
-            item("ci-2", "cc-drinks", "Everything Bagel", "Toasted, cream cheese.", 425, [.vegetarian], "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600"),
-        ]),
-    ]
-
-    private static func item(
-        _ id: String,
-        _ categoryId: String,
-        _ name: String,
-        _ description: String,
-        _ price: Int,
-        _ tags: [DietaryTag],
-        _ image: String
-    ) -> MenuItem {
-        MenuItem(
-            id: id,
-            categoryId: categoryId,
-            name: name,
-            description: description,
-            priceCents: price,
-            tags: tags,
-            imageURL: URL(string: image),
-            isAvailable: true,
-            customizations: [
-                MenuCustomization(
-                    id: "\(id)-size",
-                    name: "Size",
-                    options: [
-                        CustomizationOption(id: "\(id)-reg", name: "Regular", priceCentsDelta: 0),
-                        CustomizationOption(id: "\(id)-lg", name: "Large", priceCentsDelta: 150),
-                    ],
-                    isRequired: true,
-                    allowsMultiple: false
-                ),
-                MenuCustomization(
-                    id: "\(id)-extras",
-                    name: "Extras",
-                    options: [
-                        CustomizationOption(id: "\(id)-extra-sauce", name: "Extra sauce", priceCentsDelta: 50),
-                        CustomizationOption(id: "\(id)-no-onion", name: "No onion", priceCentsDelta: 0),
-                    ],
-                    isRequired: false,
-                    allowsMultiple: true
-                ),
-            ]
-        )
-    }
 }

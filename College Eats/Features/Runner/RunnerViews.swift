@@ -13,6 +13,7 @@ struct RunnerHomeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: AppSpacing.xl) {
                     onlineToggle
+                    earningsEntry
                     if let activeOrder {
                         activeBanner(activeOrder)
                     }
@@ -22,20 +23,8 @@ struct RunnerHomeView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .background(AppColors.background.ignoresSafeArea())
-            .navigationTitle("Runner")
+            .navigationTitle("Deliver")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink {
-                        EarningsView()
-                    } label: {
-                        Image(systemName: "chart.bar.fill")
-                            .foregroundStyle(AppColors.brand)
-                            .frame(width: AppSpacing.minTapTarget, height: AppSpacing.minTapTarget)
-                    }
-                    .accessibilityLabel("Earnings")
-                }
-            }
             .navigationDestination(for: AppRoute.self) { route in
                 if case .tracking(let id) = route {
                     RunnerActiveDeliveryView(orderId: id)
@@ -87,6 +76,36 @@ struct RunnerHomeView: View {
         }
         .padding(AppSpacing.lg)
         .background(AppCardBackground(radius: AppRadius.xxl, elevated: true))
+    }
+
+    private var earningsEntry: some View {
+        NavigationLink {
+            EarningsView()
+        } label: {
+            HStack(spacing: AppSpacing.md) {
+                Image(systemName: "banknote.fill")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(AppColors.brand)
+                    .frame(width: 44, height: 44)
+                    .background(AppColors.brand.opacity(0.12))
+                    .appCornerRadius(AppRadius.md)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Earnings & cash out")
+                        .appText(.headline)
+                    Text("See tips, weekly totals, and withdraw to your bank")
+                        .appText(.caption, color: AppColors.textSecondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(AppColors.textTertiary)
+            }
+            .padding(AppSpacing.md)
+            .background(AppCardBackground(radius: AppRadius.xl))
+        }
+        .buttonStyle(PressableButtonStyle())
+        .accessibilityLabel("Earnings and cash out")
     }
 
     private func activeBanner(_ order: Order) -> some View {

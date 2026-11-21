@@ -48,24 +48,6 @@ struct ProfileView: View {
                     }
                 }
 
-                Section("Mode") {
-                    Picker("Using app as", selection: Binding(
-                        get: { env.session.profile?.mode ?? .customer },
-                        set: { newValue in
-                            guard var profile = env.session.profile else { return }
-                            profile.mode = newValue
-                            env.session.profile = profile
-                            AppHaptics.selection()
-                            Task { _ = try? await env.authRepository.updateProfile(profile) }
-                        }
-                    )) {
-                        Text("Customer").tag(AppUserMode.customer)
-                        Text("Runner").tag(AppUserMode.runner)
-                    }
-                    .pickerStyle(.segmented)
-                    .listRowBackground(Color.clear)
-                }
-
                 Section("Campus") {
                     LabeledContent("Campus", value: env.session.selectedCampus.name)
                     if let buildingId = env.session.profile?.homeBuildingId,
@@ -75,16 +57,6 @@ struct ProfileView: View {
                     if let vehicle = env.session.profile?.vehicleType {
                         LabeledContent("Vehicle", value: vehicle.label)
                     }
-                }
-
-                Section("Developer") {
-                    NavigationLink("Design system gallery") {
-                        ComponentGalleryView()
-                    }
-                    LabeledContent("Auth", value: env.usesLiveAuth ? "Supabase OTP" : "Campus gate + on-device")
-                    LabeledContent("Push token", value: ProfilePersistence.pushToken.map { String($0.prefix(12)) + "…" } ?? "Not registered")
-                    LabeledContent("Runner GPS", value: env.runnerLocation.isPublishing ? "Publishing" : "Idle")
-                    LabeledContent("Payments", value: "Stripe stub (test)")
                 }
 
                 Section {

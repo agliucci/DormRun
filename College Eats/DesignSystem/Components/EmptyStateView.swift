@@ -59,7 +59,7 @@ enum EmptyStateCopy {
     static let noOrders = (
         image: "receipt",
         title: "No orders yet",
-        message: "Your late-night Worcester runs will show up here."
+        message: "Food you order shows up here — tap one anytime to track, chat, or rate your runner."
     )
 
     static let noRunnerJobs = (

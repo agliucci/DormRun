@@ -20,6 +20,16 @@
       "meal": "Lunch",
       "stations": 13,
       "items": 51
+    },
+    "blue_wall": {
+      "meal": "Lunch",
+      "stations": 6,
+      "items": 39
+    },
+    "terrace": {
+      "meal": "Lunch",
+      "stations": 6,
+      "items": 22
     }
   }
 }

@@ -132,7 +132,7 @@ actor SupabaseCampusRepository: CampusRepository {
         if lower.contains("berkshire") { return "DiningBerkshire" }
         if lower.contains("hampshire") { return "DiningHampshire" }
         if lower.contains("blue wall") { return "DiningBlueWall" }
-        if lower.contains("cosmic") { return "DiningCosmic" }
+        if lower.contains("terrace") { return "DiningTerrace" }
         return nil
     }
 

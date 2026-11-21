@@ -5,13 +5,15 @@ Scrape UMass residence halls + dining commons menus and refresh local seed data.
 Sources:
   - https://www.umass.edu/living/housing-options/residence-directory
   - https://umassdining.com/locations-menus/{worcester,franklin,berkshire,hampshire}/menu
+  - Blue Wall station menus under /menu/*-blue-wall*
+  - https://www.umassdining.com/menu/terrace-dining-menu
 
 Writes:
   - College Eats/Services/Mock/GeneratedUMassCatalog.swift
   - supabase/seed_buildings.sql  (buildings upsert fragment)
-  - supabase/seed_menus_scraped.sql (commons categories + items)
+  - supabase/seed_menus_scraped.sql (dining categories + items)
 
-Dining commons do not publish per-item prices; we assign placeholder
+Dining halls do not publish per-item prices; we assign placeholder
 delivery-style prices by station so the app cart still works.
 Re-run anytime menus change:  python3 scripts/scrape_umass.py
 """
@@ -38,32 +40,57 @@ RESIDENCE_URL = "https://www.umass.edu/living/housing-options/residence-director
 DINING_LOCATIONS = {
     # Category UUID bases stay well above the demo seed (c…001–021).
     "worcester": {
-        "url": "https://umassdining.com/locations-menus/worcester/menu",
+        "urls": ["https://umassdining.com/locations-menus/worcester/menu"],
         "loc_id": "d0000000-0000-4000-8000-000000000001",
         "seed_loc": "d0000000-0000-4000-8000-000000000001",
         "prefix": "wc",
         "seed_cat_base": 1000,
     },
     "franklin": {
-        "url": "https://umassdining.com/locations-menus/franklin/menu",
+        "urls": ["https://umassdining.com/locations-menus/franklin/menu"],
         "loc_id": "d0000000-0000-4000-8000-000000000002",
         "seed_loc": "d0000000-0000-4000-8000-000000000002",
         "prefix": "fr",
         "seed_cat_base": 1100,
     },
     "berkshire": {
-        "url": "https://umassdining.com/locations-menus/berkshire/menu",
+        "urls": ["https://umassdining.com/locations-menus/berkshire/menu"],
         "loc_id": "d0000000-0000-4000-8000-000000000003",
         "seed_loc": "d0000000-0000-4000-8000-000000000003",
         "prefix": "bk",
         "seed_cat_base": 1200,
     },
     "hampshire": {
-        "url": "https://umassdining.com/locations-menus/hampshire/menu",
+        "urls": ["https://umassdining.com/locations-menus/hampshire/menu"],
         "loc_id": "d0000000-0000-4000-8000-000000000004",
         "seed_loc": "d0000000-0000-4000-8000-000000000004",
         "prefix": "hm",
         "seed_cat_base": 1300,
+    },
+    # Campus Center food court — each concept has its own daily menu page.
+    "blue_wall": {
+        "urls": [
+            ("Harvest", "https://www.umassdining.com/menu/harvest-blue-wall-menu"),
+            ("Yum Bakery", "https://www.umassdining.com/menu/um-bakery-blue-wall-menu"),
+            ("Green Fields", "https://www.umassdining.com/menu/green-fields-blue-wall"),
+            ("Tamales", "https://www.umassdining.com/menu/tamales-blue-wall-menu"),
+            ("Wasabi", "https://www.umassdining.com/menu/wasabi-blue-wall"),
+            ("Deli Delish", "https://www.umassdining.com/menu/deli-delish-blue-wall"),
+            ("Star Ginger", "https://www.umassdining.com/menu/star-ginger-blue-wall-menu"),
+            ("The Grill", "https://www.umassdining.com/menu/grill-blue-wall-menu"),
+        ],
+        "loc_id": "d0000000-0000-4000-8000-000000000005",
+        "seed_loc": "d0000000-0000-4000-8000-000000000005",
+        "prefix": "bw",
+        "seed_cat_base": 1400,
+        "max_items_per_station": 8,
+    },
+    "terrace": {
+        "urls": ["https://www.umassdining.com/menu/terrace-dining-menu"],
+        "loc_id": "d0000000-0000-4000-8000-000000000006",
+        "seed_loc": "d0000000-0000-4000-8000-000000000006",
+        "prefix": "tr",
+        "seed_cat_base": 1600,
     },
 }
 
@@ -294,17 +321,56 @@ def price_for_station(station: str) -> int:
     s = station.lower()
     if "soup" in s:
         return 450
-    if "dessert" in s or "pastr" in s or "bread" in s:
+    if "dessert" in s or "pastr" in s or "bread" in s or "bakery" in s or "beignet" in s:
         return 350
-    if "grill" in s:
+    if "coffee" in s or "espresso" in s or "tea" in s or "peet" in s:
+        return 425
+    if "pizza" in s:
+        return 899
+    if "grill" in s or "burger" in s:
         return 950
-    if "sushi" in s or "steak" in s or "seasons" in s:
+    if "sushi" in s or "wasabi" in s or "steak" in s or "seasons" in s:
         return 1095
-    if "noodle" in s or "tandoor" in s or "mediterranean" in s or "street" in s:
+    if "noodle" in s or "tandoor" in s or "mediterranean" in s or "street" in s or "ginger" in s:
         return 995
+    if "deli" in s or "sandwich" in s or "salad" in s:
+        return 875
     if "breakfast" in s or "omelet" in s:
         return 795
+    if "tamale" in s:
+        return 795
     return 875
+
+
+def normalize_menu_urls(meta: dict) -> list[tuple[str | None, str]]:
+    """Return [(optional venue label, url), ...] for a dining location."""
+    raw = meta.get("urls") or ([meta["url"]] if "url" in meta else [])
+    out: list[tuple[str | None, str]] = []
+    for entry in raw:
+        if isinstance(entry, (tuple, list)) and len(entry) == 2:
+            out.append((str(entry[0]), str(entry[1])))
+        else:
+            out.append((None, str(entry)))
+    return out
+
+
+def scrape_location_menu(meta: dict) -> tuple[str, list[dict]]:
+    """Scrape one or more menu pages and merge stations (with venue prefixes)."""
+    max_items = int(meta.get("max_items_per_station", 12))
+    merged: list[dict] = []
+    meal_used = "Lunch"
+    for label, url in normalize_menu_urls(meta):
+        html = fetch(url)
+        parsed = parse_menu(html)
+        meal, stations = pick_active_meal(parsed)
+        meal_used = meal
+        for st in stations:
+            name = st["station"]
+            if label:
+                # Blue Wall concepts share generic station names (Soups, Pizza…).
+                name = f"{label} · {name}"
+            merged.append({"station": name, "items": st["items"][:max_items]})
+    return meal_used, merged
 
 
 def tags_to_swift(tags: list[str]) -> str:
@@ -338,6 +404,11 @@ def slugify(s: str) -> str:
     return s[:40] or "item"
 
 
+def swift_menu_name(key: str) -> str:
+    parts = key.split("_")
+    return parts[0] + "".join(p[:1].upper() + p[1:] for p in parts[1:]) + "Menu"
+
+
 def write_swift(buildings: list[dict], menus: dict[str, dict]) -> None:
     lines: list[str] = []
     lines.append("// Auto-generated by scripts/scrape_umass.py — do not edit by hand.")
@@ -364,7 +435,7 @@ def write_swift(buildings: list[dict], menus: dict[str, dict]) -> None:
     lines.append("    static func menus(for locationId: String) -> [MenuCategory]? {")
     lines.append("        switch locationId {")
     for key, meta in DINING_LOCATIONS.items():
-        lines.append(f'        case "{meta["loc_id"]}": return {key}Menu')
+        lines.append(f'        case "{meta["loc_id"]}": return {swift_menu_name(key)}')
     lines.append("        default: return nil")
     lines.append("        }")
     lines.append("    }")
@@ -375,8 +446,10 @@ def write_swift(buildings: list[dict], menus: dict[str, dict]) -> None:
         stations = menus[key]["stations"]
         loc = meta["loc_id"]
         prefix = meta["prefix"]
-        lines.append(f"    // {key.title()} — scraped {meal_name} menu from UMass Dining")
-        lines.append(f"    private static let {key}Menu: [MenuCategory] = [")
+        menu_var = swift_menu_name(key)
+        display = key.replace("_", " ").title()
+        lines.append(f"    // {display} — scraped {meal_name} menu from UMass Dining")
+        lines.append(f"    private static let {menu_var}: [MenuCategory] = [")
         for i, st in enumerate(stations):
             cat_id = f"{prefix}-{slugify(st['station'])}"
             lines.append(
@@ -479,25 +552,21 @@ def write_menus_sql(menus: dict[str, dict]) -> None:
                 )
         cat_ids_by_loc[loc] = cat_ids
 
+    loc_ids = [f"    '{m['seed_loc']}'" for m in DINING_LOCATIONS.values()]
+    loc_list = ",\n".join(loc_ids)
     lines = [
         "-- Auto-generated by scripts/scrape_umass.py",
-        "-- Scraped commons menus. Run after base seed.sql if you want live dining data.",
+        "-- Scraped dining menus. Run after base seed.sql if you want live dining data.",
         "begin;",
         "",
-        "-- Remove prior scraped commons categories (id prefix c... >= 50) and their items",
+        "-- Remove prior scraped categories/items for known dining locations",
         "delete from public.menu_items where category_id in (",
         "  select id from public.menu_categories where location_id in (",
-        f"    '{DINING_LOCATIONS['worcester']['seed_loc']}',",
-        f"    '{DINING_LOCATIONS['franklin']['seed_loc']}',",
-        f"    '{DINING_LOCATIONS['berkshire']['seed_loc']}',",
-        f"    '{DINING_LOCATIONS['hampshire']['seed_loc']}'",
+        loc_list,
         "  )",
         ");",
         "delete from public.menu_categories where location_id in (",
-        f"  '{DINING_LOCATIONS['worcester']['seed_loc']}',",
-        f"  '{DINING_LOCATIONS['franklin']['seed_loc']}',",
-        f"  '{DINING_LOCATIONS['berkshire']['seed_loc']}',",
-        f"  '{DINING_LOCATIONS['hampshire']['seed_loc']}'",
+        loc_list,
         ");",
         "",
         "insert into public.menu_categories (id, location_id, name, sort_order) values",
@@ -538,7 +607,7 @@ def _load_scrape_env() -> tuple[str, str]:
 
 
 def push_menus_to_supabase(menus: dict[str, dict]) -> None:
-    """Upsert scraped commons menus via PostgREST (service role required)."""
+    """Upsert scraped dining menus via PostgREST (service role required)."""
     import urllib.error
 
     base, service_key = _load_scrape_env()
@@ -584,6 +653,32 @@ def push_menus_to_supabase(menus: dict[str, dict]) -> None:
         )
         with urllib.request.urlopen(req, timeout=60, context=CTX) as resp:
             return json.loads(resp.read().decode() or "[]")
+
+    # Keep Cosmic Cafe → Terrace rename in sync for already-seeded projects.
+    terrace_id = DINING_LOCATIONS["terrace"]["seed_loc"]
+    try:
+        rest(
+            "PATCH",
+            f"dining_locations?id=eq.{terrace_id}",
+            {
+                "name": "Terrace",
+                "lat": 42.3889,
+                "lng": -72.5294,
+                "busy_level": "medium",
+                "hours": {
+                    "mon": [["08:00", "20:00"]],
+                    "tue": [["08:00", "20:00"]],
+                    "wed": [["08:00", "20:00"]],
+                    "thu": [["08:00", "20:00"]],
+                    "fri": [["08:00", "20:00"]],
+                    "sat": [["10:00", "18:00"]],
+                    "sun": [["10:00", "18:00"]],
+                },
+            },
+        )
+        print("  renamed location → Terrace")
+    except RuntimeError as e:
+        print(f"  skip Terrace rename ({e})")
 
     item_n = 200
     for loc_key, meta in DINING_LOCATIONS.items():
@@ -651,15 +746,10 @@ def main() -> None:
     menus: dict[str, dict] = {}
     for key, meta in DINING_LOCATIONS.items():
         print(f"Fetching {key} menu…")
-        html = fetch(meta["url"])
-        parsed = parse_menu(html)
-        meal, stations = pick_active_meal(parsed)
-        capped = []
-        for st in stations:
-            capped.append({"station": st["station"], "items": st["items"][:12]})
-        menus[key] = {"meal": meal, "stations": capped}
-        n = sum(len(s["items"]) for s in capped)
-        print(f"  {meal}: {len(capped)} stations, {n} items")
+        meal, stations = scrape_location_menu(meta)
+        menus[key] = {"meal": meal, "stations": stations}
+        n = sum(len(s["items"]) for s in stations)
+        print(f"  {meal}: {len(stations)} stations, {n} items")
 
     write_swift(buildings, menus)
     write_buildings_sql(buildings)

@@ -299,7 +299,7 @@ struct OrderHistoryView: View {
                 }
             }
             .background(AppColors.background.ignoresSafeArea())
-            .navigationTitle("Orders")
+            .navigationTitle("Your orders")
             .navigationDestination(for: AppRoute.self) { route in
                 if case .tracking(let id) = route {
                     TrackingView(orderId: id)

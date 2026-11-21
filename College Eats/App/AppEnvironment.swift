@@ -17,7 +17,18 @@ final class AppEnvironment {
     var cart = CartStore()
 
     var showDesignGallery = false
+    /// Detail screens (chat, etc.) hide the floating tab bar so the composer isn't covered.
+    private(set) var floatingTabBarHideCount = 0
+    var hidesFloatingTabBar: Bool { floatingTabBarHideCount > 0 }
     var usesLiveAuth: Bool { SupabaseClientProvider.usesLiveAuth }
+
+    func setFloatingTabBarHidden(_ hidden: Bool) {
+        if hidden {
+            floatingTabBarHideCount += 1
+        } else {
+            floatingTabBarHideCount = max(0, floatingTabBarHideCount - 1)
+        }
+    }
 
     init(
         campusRepository: CampusRepository? = nil,

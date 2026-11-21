@@ -358,8 +358,11 @@ struct AvailableDeliveryJob: Identifiable, Hashable, Sendable {
 struct EarningsSummary: Sendable {
     var todayCents: Int
     var weekCents: Int
+    /// Balance ready to send to the runner's bank (tips + delivery fees).
+    var availableCents: Int
     var dailyBars: [DailyEarning]
     var payoutStatus: String
+    var bankLinked: Bool
     var history: [Order]
 }
 

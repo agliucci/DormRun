@@ -1,6 +1,16 @@
 -- Run once in Supabase Dashboard → SQL Editor (enables cloud menu scrape + chat).
 grant select, insert, update, delete on public.menu_categories to service_role;
 grant select, insert, update, delete on public.menu_items to service_role;
+grant select, update on public.dining_locations to service_role;
+
+-- Cosmic Cafe was removed; reuse that row as Terrace (Fieldstone café).
+update public.dining_locations
+set name = 'Terrace',
+    lat = 42.3889,
+    lng = -72.5294,
+    busy_level = 'medium',
+    hours = '{"mon":[["08:00","20:00"]],"tue":[["08:00","20:00"]],"wed":[["08:00","20:00"]],"thu":[["08:00","20:00"]],"fri":[["08:00","20:00"]],"sat":[["10:00","18:00"]],"sun":[["10:00","18:00"]]}'::jsonb
+where id = 'd0000000-0000-4000-8000-000000000006';
 
 create table if not exists public.order_messages (
   id uuid primary key default gen_random_uuid(),

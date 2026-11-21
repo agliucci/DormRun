@@ -12,7 +12,7 @@ enum AppTab: String, CaseIterable, Identifiable {
         switch self {
         case .home: "Home"
         case .orders: "Orders"
-        case .runner: "Runner"
+        case .runner: "Deliver"
         case .profile: "Profile"
         }
     }

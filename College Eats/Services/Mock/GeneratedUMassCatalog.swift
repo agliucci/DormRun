@@ -65,6 +65,8 @@ enum GeneratedUMassCatalog {
         case "d0000000-0000-4000-8000-000000000002": return franklinMenu
         case "d0000000-0000-4000-8000-000000000003": return berkshireMenu
         case "d0000000-0000-4000-8000-000000000004": return hampshireMenu
+        case "d0000000-0000-4000-8000-000000000005": return blueWallMenu
+        case "d0000000-0000-4000-8000-000000000006": return terraceMenu
         default: return nil
         }
     }
@@ -201,8 +203,8 @@ enum GeneratedUMassCatalog {
             genItem("fr-i9-0", "fr-stir-fry-station", "Plant-Based Condiments Bar w/Almonds", "From today's lunch menu · Stir Fry Station", 875, []),
         ]),
         MenuCategory(id: "fr-pizza", locationId: "d0000000-0000-4000-8000-000000000002", name: "Pizza", sortOrder: 10, items: [
-            genItem("fr-i10-0", "fr-pizza", "Cheese Pizza", "From today's lunch menu · Pizza", 875, [.halal, .vegetarian]),
-            genItem("fr-i10-1", "fr-pizza", "Pepperoni Pizza", "From today's lunch menu · Pizza", 875, []),
+            genItem("fr-i10-0", "fr-pizza", "Cheese Pizza", "From today's lunch menu · Pizza", 899, [.halal, .vegetarian]),
+            genItem("fr-i10-1", "fr-pizza", "Pepperoni Pizza", "From today's lunch menu · Pizza", 899, []),
         ]),
         MenuCategory(id: "fr-gluten-free", locationId: "d0000000-0000-4000-8000-000000000002", name: "Gluten Free", sortOrder: 11, items: [
             genItem("fr-i11-0", "fr-gluten-free", "Mediterranean Chicken Bowl", "From today's lunch menu · Gluten Free", 875, [.halal]),
@@ -275,8 +277,8 @@ enum GeneratedUMassCatalog {
             genItem("bk-i8-0", "bk-noodle-bowl", "Tantanmen Ramen Bar", "From today's lunch menu · Noodle Bowl", 995, []),
         ]),
         MenuCategory(id: "bk-pizza", locationId: "d0000000-0000-4000-8000-000000000003", name: "Pizza", sortOrder: 9, items: [
-            genItem("bk-i9-0", "bk-pizza", "Cheese Pizza", "From today's lunch menu · Pizza", 875, [.halal, .vegetarian]),
-            genItem("bk-i9-1", "bk-pizza", "Pepperoni Pizza", "From today's lunch menu · Pizza", 875, []),
+            genItem("bk-i9-0", "bk-pizza", "Cheese Pizza", "From today's lunch menu · Pizza", 899, [.halal, .vegetarian]),
+            genItem("bk-i9-1", "bk-pizza", "Pepperoni Pizza", "From today's lunch menu · Pizza", 899, []),
         ]),
         MenuCategory(id: "bk-display-station", locationId: "d0000000-0000-4000-8000-000000000003", name: "Display Station", sortOrder: 10, items: [
             genItem("bk-i10-0", "bk-display-station", "Pancake Bar (Peanuts, Almonds, Walnuts)", "From today's lunch menu · Display Station", 875, [.vegetarian]),
@@ -337,9 +339,9 @@ enum GeneratedUMassCatalog {
             genItem("hm-i7-0", "hm-noodle-bowl", "Chicken Congee", "From today's lunch menu · Noodle Bowl", 995, []),
         ]),
         MenuCategory(id: "hm-pizza", locationId: "d0000000-0000-4000-8000-000000000004", name: "Pizza", sortOrder: 8, items: [
-            genItem("hm-i8-0", "hm-pizza", "Cheese Pizza", "From today's lunch menu · Pizza", 875, [.halal, .vegetarian]),
-            genItem("hm-i8-1", "hm-pizza", "Pepperoni Pizza", "From today's lunch menu · Pizza", 875, []),
-            genItem("hm-i8-2", "hm-pizza", "Vegetable Pizza", "From today's lunch menu · Pizza", 875, [.halal, .vegetarian]),
+            genItem("hm-i8-0", "hm-pizza", "Cheese Pizza", "From today's lunch menu · Pizza", 899, [.halal, .vegetarian]),
+            genItem("hm-i8-1", "hm-pizza", "Pepperoni Pizza", "From today's lunch menu · Pizza", 899, []),
+            genItem("hm-i8-2", "hm-pizza", "Vegetable Pizza", "From today's lunch menu · Pizza", 899, [.halal, .vegetarian]),
         ]),
         MenuCategory(id: "hm-sushi", locationId: "d0000000-0000-4000-8000-000000000004", name: "Sushi", sortOrder: 9, items: [
             genItem("hm-i9-0", "hm-sushi", "California Roll", "From today's lunch menu · Sushi", 1095, []),
@@ -361,6 +363,99 @@ enum GeneratedUMassCatalog {
             genItem("hm-i12-0", "hm-street-food", "Dim Sum", "From today's lunch menu · Street Food", 995, []),
             genItem("hm-i12-1", "hm-street-food", "Pork Fried Rice", "From today's lunch menu · Street Food", 995, []),
             genItem("hm-i12-2", "hm-street-food", "Stir Fried Vegetables w/Sesame", "From today's lunch menu · Street Food", 995, [.halal]),
+        ]),
+    ]
+
+    // Blue Wall — scraped Lunch menu from UMass Dining
+    private static let blueWallMenu: [MenuCategory] = [
+        MenuCategory(id: "bw-harvest-soups", locationId: "d0000000-0000-4000-8000-000000000005", name: "Harvest · Soups", sortOrder: 0, items: [
+            genItem("bw-i0-0", "bw-harvest-soups", "12 oz Chicken Noodle Soup", "From today's lunch menu · Harvest · Soups", 450, []),
+            genItem("bw-i0-1", "bw-harvest-soups", "12 oz Tomato Basil Soup", "From today's lunch menu · Harvest · Soups", 450, [.halal]),
+            genItem("bw-i0-2", "bw-harvest-soups", "8 oz Chicken Noodle Soup", "From today's lunch menu · Harvest · Soups", 450, []),
+            genItem("bw-i0-3", "bw-harvest-soups", "8 oz Tomato Basil Soup", "From today's lunch menu · Harvest · Soups", 450, [.halal]),
+        ]),
+        MenuCategory(id: "bw-harvest-pizza", locationId: "d0000000-0000-4000-8000-000000000005", name: "Harvest · Pizza", sortOrder: 1, items: [
+            genItem("bw-i1-0", "bw-harvest-pizza", "Cheese Pizza", "From today's lunch menu · Harvest · Pizza", 899, [.halal, .vegetarian]),
+            genItem("bw-i1-1", "bw-harvest-pizza", "Pepperoni Pizza", "From today's lunch menu · Harvest · Pizza", 899, []),
+            genItem("bw-i1-2", "bw-harvest-pizza", "Primavera Pizza", "From today's lunch menu · Harvest · Pizza", 899, [.halal, .vegetarian]),
+        ]),
+        MenuCategory(id: "bw-harvest-salad-bar-11-50-lb", locationId: "d0000000-0000-4000-8000-000000000005", name: "Harvest · Salad Bar $11.50/LB", sortOrder: 2, items: [
+            genItem("bw-i2-0", "bw-harvest-salad-bar-11-50-lb", "African Soul Rice Salad", "From today's lunch menu · Harvest · Salad Bar $11.50/LB", 875, [.halal, .vegetarian]),
+            genItem("bw-i2-1", "bw-harvest-salad-bar-11-50-lb", "CABOT Plain Whole Milk Greek Yogurt", "From today's lunch menu · Harvest · Salad Bar $11.50/LB", 875, [.halal, .vegetarian]),
+            genItem("bw-i2-2", "bw-harvest-salad-bar-11-50-lb", "Chicken Topping", "From today's lunch menu · Harvest · Salad Bar $11.50/LB", 875, []),
+            genItem("bw-i2-3", "bw-harvest-salad-bar-11-50-lb", "Cottage Cheese", "From today's lunch menu · Harvest · Salad Bar $11.50/LB", 875, [.halal, .vegetarian]),
+            genItem("bw-i2-4", "bw-harvest-salad-bar-11-50-lb", "Deli Chicken Salad", "From today's lunch menu · Harvest · Salad Bar $11.50/LB", 875, [.halal]),
+            genItem("bw-i2-5", "bw-harvest-salad-bar-11-50-lb", "GF Honey Oat Granola", "From today's lunch menu · Harvest · Salad Bar $11.50/LB", 875, [.vegetarian]),
+            genItem("bw-i2-6", "bw-harvest-salad-bar-11-50-lb", "Hard Boiled Eggs", "From today's lunch menu · Harvest · Salad Bar $11.50/LB", 875, [.halal, .vegetarian]),
+            genItem("bw-i2-7", "bw-harvest-salad-bar-11-50-lb", "Local Honey", "From today's lunch menu · Harvest · Salad Bar $11.50/LB", 875, [.halal, .vegetarian]),
+        ]),
+        MenuCategory(id: "bw-harvest-hot-bar-items-11-50-lb", locationId: "d0000000-0000-4000-8000-000000000005", name: "Harvest · Hot Bar Items $11.50/LB", sortOrder: 3, items: [
+            genItem("bw-i3-0", "bw-harvest-hot-bar-items-11-50-lb", "BBQ Beef Brisket", "From today's lunch menu · Harvest · Hot Bar Items $11.50/LB", 875, []),
+            genItem("bw-i3-1", "bw-harvest-hot-bar-items-11-50-lb", "Maple Butternut Squash", "From today's lunch menu · Harvest · Hot Bar Items $11.50/LB", 875, [.halal]),
+            genItem("bw-i3-2", "bw-harvest-hot-bar-items-11-50-lb", "Orzo Spinach Pilaf", "From today's lunch menu · Harvest · Hot Bar Items $11.50/LB", 875, [.vegetarian]),
+            genItem("bw-i3-3", "bw-harvest-hot-bar-items-11-50-lb", "Pasta Primavera", "From today's lunch menu · Harvest · Hot Bar Items $11.50/LB", 875, [.vegetarian]),
+            genItem("bw-i3-4", "bw-harvest-hot-bar-items-11-50-lb", "Pulmuone Tofu Bites", "From today's lunch menu · Harvest · Hot Bar Items $11.50/LB", 875, [.halal]),
+            genItem("bw-i3-5", "bw-harvest-hot-bar-items-11-50-lb", "Sauteed Green Beans", "From today's lunch menu · Harvest · Hot Bar Items $11.50/LB", 875, [.halal]),
+            genItem("bw-i3-6", "bw-harvest-hot-bar-items-11-50-lb", "Shake & Bake Chicken Legs", "From today's lunch menu · Harvest · Hot Bar Items $11.50/LB", 875, []),
+            genItem("bw-i3-7", "bw-harvest-hot-bar-items-11-50-lb", "Three Sisters Rice", "From today's lunch menu · Harvest · Hot Bar Items $11.50/LB", 875, [.halal]),
+        ]),
+        MenuCategory(id: "bw-harvest-cold-bar-items-11-50-lb", locationId: "d0000000-0000-4000-8000-000000000005", name: "Harvest · Cold Bar Items $11.50/LB", sortOrder: 4, items: [
+            genItem("bw-i4-0", "bw-harvest-cold-bar-items-11-50-lb", "Baby Spinach", "From today's lunch menu · Harvest · Cold Bar Items $11.50/LB", 875, [.halal]),
+            genItem("bw-i4-1", "bw-harvest-cold-bar-items-11-50-lb", "Blue Cheese Crumbles", "From today's lunch menu · Harvest · Cold Bar Items $11.50/LB", 875, [.halal, .vegetarian]),
+            genItem("bw-i4-2", "bw-harvest-cold-bar-items-11-50-lb", "Blue Cheese Dressing", "From today's lunch menu · Harvest · Cold Bar Items $11.50/LB", 875, [.vegetarian]),
+            genItem("bw-i4-3", "bw-harvest-cold-bar-items-11-50-lb", "Broccoli Flowerettes", "From today's lunch menu · Harvest · Cold Bar Items $11.50/LB", 875, [.halal]),
+            genItem("bw-i4-4", "bw-harvest-cold-bar-items-11-50-lb", "Carrots", "From today's lunch menu · Harvest · Cold Bar Items $11.50/LB", 875, [.halal, .vegetarian]),
+            genItem("bw-i4-5", "bw-harvest-cold-bar-items-11-50-lb", "Cherry Tomatoes", "From today's lunch menu · Harvest · Cold Bar Items $11.50/LB", 875, [.halal]),
+            genItem("bw-i4-6", "bw-harvest-cold-bar-items-11-50-lb", "Chipotle Ranch Dressing", "From today's lunch menu · Harvest · Cold Bar Items $11.50/LB", 875, [.halal, .vegetarian]),
+            genItem("bw-i4-7", "bw-harvest-cold-bar-items-11-50-lb", "Creamy Caesar Dressing", "From today's lunch menu · Harvest · Cold Bar Items $11.50/LB", 875, []),
+        ]),
+        MenuCategory(id: "bw-tamales-toppings", locationId: "d0000000-0000-4000-8000-000000000005", name: "Tamales · Toppings", sortOrder: 5, items: [
+            genItem("bw-i5-0", "bw-tamales-toppings", "Brown Rice w/Lime & Cilantro", "From today's lunch menu · Tamales · Toppings", 795, [.halal]),
+            genItem("bw-i5-1", "bw-tamales-toppings", "Cheddar Cheese", "From today's lunch menu · Tamales · Toppings", 795, [.halal, .vegetarian]),
+            genItem("bw-i5-2", "bw-tamales-toppings", "Guacamole", "From today's lunch menu · Tamales · Toppings", 795, [.halal]),
+            genItem("bw-i5-3", "bw-tamales-toppings", "Pickled Cabbage and Cucumber", "From today's lunch menu · Tamales · Toppings", 795, [.halal]),
+            genItem("bw-i5-4", "bw-tamales-toppings", "Pickled Red Onions", "From today's lunch menu · Tamales · Toppings", 795, [.halal]),
+            genItem("bw-i5-5", "bw-tamales-toppings", "Pinto Beans", "From today's lunch menu · Tamales · Toppings", 795, [.halal]),
+            genItem("bw-i5-6", "bw-tamales-toppings", "Salsa", "From today's lunch menu · Tamales · Toppings", 795, [.halal]),
+            genItem("bw-i5-7", "bw-tamales-toppings", "Shredded Lettuce", "From today's lunch menu · Tamales · Toppings", 795, [.halal]),
+        ]),
+    ]
+
+    // Terrace — scraped Lunch menu from UMass Dining
+    private static let terraceMenu: [MenuCategory] = [
+        MenuCategory(id: "tr-entrees", locationId: "d0000000-0000-4000-8000-000000000006", name: "Entrees", sortOrder: 0, items: [
+            genItem("tr-i0-0", "tr-entrees", "Chimichurie Chicken", "From today's lunch menu · Entrees", 875, [.halal]),
+        ]),
+        MenuCategory(id: "tr-salad-bar-dressings", locationId: "d0000000-0000-4000-8000-000000000006", name: "Salad Bar/Dressings", sortOrder: 1, items: [
+            genItem("tr-i1-0", "tr-salad-bar-dressings", "House Chopped Salad", "From today's lunch menu · Salad Bar/Dressings", 875, [.vegetarian]),
+            genItem("tr-i1-1", "tr-salad-bar-dressings", "Power Bowl Salad", "From today's lunch menu · Salad Bar/Dressings", 875, [.halal, .vegetarian]),
+        ]),
+        MenuCategory(id: "tr-deli-bar", locationId: "d0000000-0000-4000-8000-000000000006", name: "Deli Bar", sortOrder: 2, items: [
+            genItem("tr-i2-0", "tr-deli-bar", "Croque Madame (Ham, Cheese & Egg)", "From today's lunch menu · Deli Bar", 875, []),
+            genItem("tr-i2-1", "tr-deli-bar", "Croque Monsieur (Ham & Cheese w/Bechamel)", "From today's lunch menu · Deli Bar", 875, []),
+            genItem("tr-i2-2", "tr-deli-bar", "French Grilled Cheese Sandwich", "From today's lunch menu · Deli Bar", 875, [.vegetarian]),
+            genItem("tr-i2-3", "tr-deli-bar", "GF Peanut Butter & Strawberry Jam Sandwich", "From today's lunch menu · Deli Bar", 875, [.halal, .vegetarian]),
+            genItem("tr-i2-4", "tr-deli-bar", "GF Turkey Cheddar Sandwich w/Tomato Aioli", "From today's lunch menu · Deli Bar", 875, []),
+            genItem("tr-i2-5", "tr-deli-bar", "Pastrami on Seeded Rye w/ Sauerkraut, Pickle Spear", "From today's lunch menu · Deli Bar", 875, []),
+            genItem("tr-i2-6", "tr-deli-bar", "Terrace Cafe Burger", "From today's lunch menu · Deli Bar", 875, []),
+            genItem("tr-i2-7", "tr-deli-bar", "Terrace Club Sandwich", "From today's lunch menu · Deli Bar", 875, []),
+            genItem("tr-i2-8", "tr-deli-bar", "Tuna on White", "From today's lunch menu · Deli Bar", 875, [.halal]),
+            genItem("tr-i2-9", "tr-deli-bar", "Tuscan Sandwich", "From today's lunch menu · Deli Bar", 875, []),
+        ]),
+        MenuCategory(id: "tr-desserts", locationId: "d0000000-0000-4000-8000-000000000006", name: "Desserts", sortOrder: 3, items: [
+            genItem("tr-i3-0", "tr-desserts", "Fruit Cup", "From today's lunch menu · Desserts", 350, [.halal, .vegetarian]),
+            genItem("tr-i3-1", "tr-desserts", "Red Berry Compote Beignet", "From today's lunch menu · Desserts", 350, [.vegetarian]),
+        ]),
+        MenuCategory(id: "tr-pizza", locationId: "d0000000-0000-4000-8000-000000000006", name: "Pizza", sortOrder: 4, items: [
+            genItem("tr-i4-0", "tr-pizza", "Apple Bacon & Cheddar Pizza", "From today's lunch menu · Pizza", 899, []),
+        ]),
+        MenuCategory(id: "tr-add-ons", locationId: "d0000000-0000-4000-8000-000000000006", name: "Add-ons", sortOrder: 5, items: [
+            genItem("tr-i5-0", "tr-add-ons", "Arugula Salad", "From today's lunch menu · Add-ons", 875, [.halal]),
+            genItem("tr-i5-1", "tr-add-ons", "Bacon", "From today's lunch menu · Add-ons", 875, []),
+            genItem("tr-i5-2", "tr-add-ons", "Fried Egg", "From today's lunch menu · Add-ons", 875, [.halal, .vegetarian]),
+            genItem("tr-i5-3", "tr-add-ons", "Harissa Aioli", "From today's lunch menu · Add-ons", 875, [.halal, .vegetarian]),
+            genItem("tr-i5-4", "tr-add-ons", "Roasted Potato", "From today's lunch menu · Add-ons", 875, [.halal, .vegetarian]),
+            genItem("tr-i5-5", "tr-add-ons", "Shoe String Fries", "From today's lunch menu · Add-ons", 875, [.halal]),
         ]),
     ]
 

@@ -48,8 +48,15 @@ struct RootView: View {
         tabContent
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                FloatingTabBar(selection: $tab)
-                    .padding(.bottom, AppSpacing.xxs)
+                if !env.hidesFloatingTabBar {
+                    FloatingTabBar(selection: $tab)
+                        .padding(.bottom, AppSpacing.xxs)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .animation(AppMotion.spring, value: env.hidesFloatingTabBar)
+            .onChange(of: tab) { _, newTab in
+                applyMode(for: newTab)
             }
     }
 
@@ -61,42 +68,23 @@ struct RootView: View {
         case .orders:
             OrderHistoryView()
         case .runner:
-            if env.session.profile?.mode == .runner {
-                RunnerHomeView()
-            } else {
-                runnerUpsell
-            }
+            RunnerHomeView()
         case .profile:
             ProfileView()
         }
     }
 
-    private var runnerUpsell: some View {
-        NavigationStack {
-            VStack(spacing: AppSpacing.xl) {
-                EmptyStateView(
-                    systemImage: "bicycle",
-                    title: "Switch to Runner mode",
-                    message: "Toggle Customer / Runner in Profile to go online, accept orders, and track earnings.",
-                    actionTitle: "Open Profile"
-                ) {
-                    tab = .profile
-                }
-
-                NavigationLink {
-                    EarningsView()
-                } label: {
-                    Text("Preview earnings")
-                        .font(AppTypography.headline)
-                        .foregroundStyle(AppColors.brand)
-                        .frame(minHeight: AppSpacing.minTapTarget)
-                }
-            }
-            .padding(AppSpacing.screenMargin)
-            .background(AppColors.background.ignoresSafeArea())
-            .navigationTitle("Runner")
-            .navigationBarTitleDisplayMode(.inline)
+    /// Runner tab = deliver food. Home/Orders = order food.
+    private func applyMode(for tab: AppTab) {
+        guard var profile = env.session.profile else { return }
+        let desired: AppUserMode = (tab == .runner) ? .runner : .customer
+        guard profile.mode != desired else { return }
+        profile.mode = desired
+        env.session.profile = profile
+        if desired == .customer {
+            env.session.isOnlineAsRunner = false
         }
+        Task { _ = try? await env.authRepository.updateProfile(profile) }
     }
 
     private func bootstrap() async {

@@ -8,61 +8,110 @@ struct OrderChatView: View {
     @State private var draft = ""
     @State private var errorMessage: String?
     @State private var isSending = false
+    @State private var didHideTabBar = false
 
     private var myId: String? { env.session.profile?.id }
 
     var body: some View {
         VStack(spacing: 0) {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: AppSpacing.sm) {
-                        ForEach(messages) { message in
-                            bubble(message)
-                                .id(message.id)
-                        }
-                    }
-                    .padding(AppSpacing.screenMargin)
-                }
-                .onChange(of: messages.count) { _, _ in
-                    if let last = messages.last {
-                        withAnimation(AppMotion.spring) {
-                            proxy.scrollTo(last.id, anchor: .bottom)
-                        }
-                    }
-                }
-            }
-
+            messageList
             if let errorMessage {
                 Text(errorMessage)
                     .appText(.caption, color: AppColors.danger)
                     .padding(.horizontal, AppSpacing.screenMargin)
+                    .padding(.vertical, AppSpacing.xs)
             }
-
-            HStack(spacing: AppSpacing.sm) {
-                TextField("Message your \(peerLabel)…", text: $draft, axis: .vertical)
-                    .lineLimit(1...4)
-                    .padding(AppSpacing.sm)
-                    .background(AppColors.surfaceMuted)
-                    .appCornerRadius(AppRadius.md)
-
-                Button {
-                    Task { await send() }
-                } label: {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 32))
-                        .foregroundStyle(canSend ? AppColors.brand : AppColors.textTertiary)
-                }
-                .disabled(!canSend || isSending)
-                .accessibilityLabel("Send")
-            }
-            .padding(AppSpacing.screenMargin)
-            .background(.ultraThinMaterial)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            composer
         }
         .background(AppColors.background.ignoresSafeArea())
         .navigationTitle("Chat")
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
         .refreshable { await load() }
+        .onAppear {
+            guard !didHideTabBar else { return }
+            env.setFloatingTabBarHidden(true)
+            didHideTabBar = true
+        }
+        .onDisappear {
+            guard didHideTabBar else { return }
+            env.setFloatingTabBarHidden(false)
+            didHideTabBar = false
+        }
+    }
+
+    private var messageList: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: AppSpacing.sm) {
+                    if messages.isEmpty {
+                        emptyState
+                            .padding(.top, AppSpacing.xxl)
+                    }
+                    ForEach(messages) { message in
+                        bubble(message)
+                            .id(message.id)
+                    }
+                }
+                .padding(AppSpacing.screenMargin)
+                .padding(.bottom, AppSpacing.md)
+            }
+            .onChange(of: messages.count) { _, _ in
+                if let last = messages.last {
+                    withAnimation(AppMotion.spring) {
+                        proxy.scrollTo(last.id, anchor: .bottom)
+                    }
+                }
+            }
+        }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: AppSpacing.sm) {
+            Image(systemName: "bubble.left.and.bubble.right.fill")
+                .font(.system(size: 36))
+                .foregroundStyle(AppColors.brand.opacity(0.85))
+            Text("No messages yet")
+                .appText(.headline)
+            Text("Say hi to your \(peerLabel) — drop-off tips, ETA questions, all good here.")
+                .appText(.subheadline, color: AppColors.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, AppSpacing.lg)
+    }
+
+    private var composer: some View {
+        HStack(alignment: .bottom, spacing: AppSpacing.sm) {
+            TextField("Message your \(peerLabel)…", text: $draft, axis: .vertical)
+                .lineLimit(1...4)
+                .padding(AppSpacing.sm)
+                .background(AppColors.surfaceMuted)
+                .appCornerRadius(AppRadius.md)
+
+            Button {
+                Task { await send() }
+            } label: {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 34))
+                    .foregroundStyle(canSend ? AppColors.brand : AppColors.textTertiary)
+                    .frame(width: AppSpacing.minTapTarget, height: AppSpacing.minTapTarget)
+            }
+            .disabled(!canSend || isSending)
+            .accessibilityLabel("Send")
+        }
+        .padding(.horizontal, AppSpacing.screenMargin)
+        .padding(.vertical, AppSpacing.sm)
+        .background {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .overlay(alignment: .top) {
+                    Divider().opacity(0.35)
+                }
+                .ignoresSafeArea(edges: .bottom)
+        }
     }
 
     private var peerLabel: String {
@@ -119,4 +168,32 @@ struct OrderChatView: View {
             AppHaptics.error()
         }
     }
+}
+
+#Preview("Order chat") {
+    let env = AppEnvironment(chatRepository: MockChatRepository())
+    env.session.profile = MockCatalogData.demoCustomer
+    return NavigationStack {
+        OrderChatView(
+            order: Order(
+                id: "preview-order",
+                customerId: MockCatalogData.customerId,
+                runnerId: MockCatalogData.runnerId,
+                locationId: "d0000000-0000-4000-8000-000000000005",
+                locationName: "Blue Wall",
+                dropoffBuildingId: "b0000000-0000-4000-8000-000000000002",
+                dropoffBuildingName: "John Quincy Adams Hall",
+                dropoffNote: "Lobby",
+                status: .enRoute,
+                subtotalCents: 1200,
+                deliveryFeeCents: 299,
+                tipCents: 200,
+                handoffCode: "4821",
+                items: [],
+                runner: MockCatalogData.demoRunner,
+                placedAt: .now.addingTimeInterval(-600)
+            )
+        )
+    }
+    .environment(env)
 }

@@ -264,11 +264,14 @@ actor MockOrderRepository: OrderRepository {
         let bars = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].enumerated().map { index, label in
             DailyEarning(id: label, dayLabel: label, cents: [420, 880, 650, 1200, 980, 1500, max(today, 300)][index])
         }
+        let earned = max(week, 6840)
         return EarningsSummary(
             todayCents: max(today, 1250),
-            weekCents: max(week, 6840),
+            weekCents: earned,
+            availableCents: earned,
             dailyBars: bars,
-            payoutStatus: "Next payout Monday · Stripe test mode",
+            payoutStatus: "Instant cash out in test mode · real bank deposits via Stripe Connect",
+            bankLinked: false,
             history: delivered
         )
     }
@@ -324,7 +327,31 @@ actor MockOrderRepository: OrderRepository {
 }
 
 actor MockChatRepository: ChatRepository {
-    private var messages: [String: [OrderMessage]] = [:]
+    private var messages: [String: [OrderMessage]] = [
+        "preview-order": [
+            OrderMessage(
+                id: "m1",
+                orderId: "preview-order",
+                senderId: MockCatalogData.runnerId,
+                body: "Hey! Grabbing your order at Blue Wall now.",
+                createdAt: .now.addingTimeInterval(-180)
+            ),
+            OrderMessage(
+                id: "m2",
+                orderId: "preview-order",
+                senderId: MockCatalogData.customerId,
+                body: "Awesome — lobby door by the elevators.",
+                createdAt: .now.addingTimeInterval(-90)
+            ),
+            OrderMessage(
+                id: "m3",
+                orderId: "preview-order",
+                senderId: MockCatalogData.runnerId,
+                body: "On my way, ~4 min.",
+                createdAt: .now.addingTimeInterval(-30)
+            ),
+        ]
+    ]
 
     func fetchMessages(orderId: String) async throws -> [OrderMessage] {
         try await Task.sleep(nanoseconds: 120_000_000)
