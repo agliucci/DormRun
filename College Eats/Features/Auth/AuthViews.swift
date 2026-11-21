@@ -14,11 +14,24 @@ struct AuthGateView: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: AppSpacing.xl) {
-                VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                    Text(DesignSystem.brandName)
-                        .font(AppTypography.display)
-                        .foregroundStyle(AppColors.brand)
-                        .tracking(-0.8)
+                VStack(alignment: .leading, spacing: AppSpacing.md) {
+                    Image("BrandMark")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 72, height: 72)
+                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .shadow(color: AppColors.brand.opacity(0.28), radius: 16, y: 8)
+                        .accessibilityHidden(true)
+
+                    HStack(alignment: .firstTextBaseline, spacing: 0) {
+                        Text(DesignSystem.brandName)
+                            .font(AppTypography.display.italic())
+                            .foregroundStyle(AppColors.textPrimary)
+                            .tracking(-0.8)
+                        Text(".")
+                            .font(AppTypography.display)
+                            .foregroundStyle(AppColors.brand)
+                    }
 
                     Text(step == .email
                          ? "Campus food, delivered by students."

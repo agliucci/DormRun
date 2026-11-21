@@ -36,33 +36,34 @@ UA = "UMassEatsBot/1.0 (+local catalog sync; contact campus app)"
 
 RESIDENCE_URL = "https://www.umass.edu/living/housing-options/residence-directory"
 DINING_LOCATIONS = {
+    # Category UUID bases stay well above the demo seed (c…001–021).
     "worcester": {
         "url": "https://umassdining.com/locations-menus/worcester/menu",
         "loc_id": "d0000000-0000-4000-8000-000000000001",
         "seed_loc": "d0000000-0000-4000-8000-000000000001",
         "prefix": "wc",
-        "seed_cat_base": 1,
+        "seed_cat_base": 1000,
     },
     "franklin": {
         "url": "https://umassdining.com/locations-menus/franklin/menu",
         "loc_id": "d0000000-0000-4000-8000-000000000002",
         "seed_loc": "d0000000-0000-4000-8000-000000000002",
         "prefix": "fr",
-        "seed_cat_base": 50,
+        "seed_cat_base": 1100,
     },
     "berkshire": {
         "url": "https://umassdining.com/locations-menus/berkshire/menu",
         "loc_id": "d0000000-0000-4000-8000-000000000003",
         "seed_loc": "d0000000-0000-4000-8000-000000000003",
         "prefix": "bk",
-        "seed_cat_base": 100,
+        "seed_cat_base": 1200,
     },
     "hampshire": {
         "url": "https://umassdining.com/locations-menus/hampshire/menu",
         "loc_id": "d0000000-0000-4000-8000-000000000004",
         "seed_loc": "d0000000-0000-4000-8000-000000000004",
         "prefix": "hm",
-        "seed_cat_base": 150,
+        "seed_cat_base": 1300,
     },
 }
 
@@ -559,7 +560,11 @@ def push_menus_to_supabase(menus: dict[str, dict]) -> None:
                 "apikey": service_key,
                 "Authorization": f"Bearer {service_key}",
                 "Content-Type": "application/json",
-                "Prefer": "return=minimal",
+                "Prefer": (
+                    "resolution=merge-duplicates,return=minimal"
+                    if method == "POST"
+                    else "return=minimal"
+                ),
             },
         )
         try:

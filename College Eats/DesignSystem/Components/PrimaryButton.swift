@@ -39,7 +39,15 @@ struct PrimaryButton: View {
             .frame(minHeight: AppSpacing.minTapTarget)
             .padding(.horizontal, AppSpacing.lg)
             .foregroundStyle(foreground)
-            .background(background)
+            .background {
+                Group {
+                    if style == .primary {
+                        AppColors.brandGradient
+                    } else {
+                        background
+                    }
+                }
+            }
             .appCornerRadius(AppRadius.lg)
             .overlay {
                 if style == .secondary || style == .tertiary {

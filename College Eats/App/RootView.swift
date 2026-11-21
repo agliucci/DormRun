@@ -23,9 +23,21 @@ struct RootView: View {
         ZStack {
             AppColors.background.ignoresSafeArea()
             VStack(spacing: AppSpacing.md) {
-                Text(DesignSystem.brandName)
-                    .font(AppTypography.title)
-                    .foregroundStyle(AppColors.brand)
+                HStack(spacing: AppSpacing.sm) {
+                    Image("BrandMark")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 44, height: 44)
+                        .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+                    HStack(alignment: .firstTextBaseline, spacing: 0) {
+                        Text(DesignSystem.brandName)
+                            .font(AppTypography.title.italic())
+                            .foregroundStyle(AppColors.textPrimary)
+                        Text(".")
+                            .font(AppTypography.title)
+                            .foregroundStyle(AppColors.brand)
+                    }
+                }
                 SkeletonView(height: 8)
                     .frame(width: 120)
             }

@@ -1,14 +1,21 @@
 import SwiftUI
 
-/// Semantic color tokens for UMass Eats. Always use these — never hardcode colors in views.
+/// Semantic color tokens for DormRun. Always use these — never hardcode colors in views.
 enum AppColors {
     // MARK: - Brand
 
-    /// UMass maroon — use sparingly for primary CTAs and key accents.
+    /// DormRun orange-red — primary CTAs and key accents.
     static let brand = Color("Brand", bundle: .main)
 
-    /// Warm amber/cream highlight for secondary accents and busy/closing-soon chips.
+    /// Brighter orange highlight for secondary accents and busy/closing-soon chips.
     static let accentWarm = Color("AccentWarm", bundle: .main)
+
+    /// Logo gradient (bright orange → deep vermillion).
+    static let brandGradient = LinearGradient(
+        colors: [Color(hex: "#F15014"), Color(hex: "#B11616")],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
 
     // MARK: - Surfaces
 
