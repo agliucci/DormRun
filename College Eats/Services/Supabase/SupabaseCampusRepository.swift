@@ -81,7 +81,11 @@ actor SupabaseCampusRepository: CampusRepository {
                             description: item.description ?? "",
                             priceCents: item.price_cents,
                             tags: Self.mapTags(item.tags ?? []),
-                            imageURL: item.image_url.flatMap(URL.init(string:)),
+                            imageURL: FoodImageCatalog.resolving(
+                                item.image_url.flatMap(URL.init(string:)),
+                                dishName: item.name,
+                                station: cat.name
+                            ),
                             isAvailable: item.is_available ?? true,
                             customizations: []
                         )

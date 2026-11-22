@@ -3,9 +3,9 @@ import CoreLocation
 
 /// Live order + runner GPS fan-out. No simulated paths or auto status advances.
 final class MockRealtimeService: LocationPublishing, @unchecked Sendable {
-    private let orderRepository: MockOrderRepository
+    private let orderRepository: any OrderRepository
 
-    init(orderRepository: MockOrderRepository) {
+    init(orderRepository: any OrderRepository) {
         self.orderRepository = orderRepository
     }
 
@@ -62,7 +62,7 @@ final class MockRealtimeService: LocationPublishing, @unchecked Sendable {
                                 )
                                 LiveActivityManager.shared.update(
                                     status: order.status.label,
-                                    eta: order.status == .delivered ? "Delivered" : "Live GPS",
+                                    eta: order.status == .delivered ? "Delivered" : "~10 min",
                                     locationName: "\(order.locationName) → \(order.dropoffBuildingName)"
                                 )
                             }
@@ -87,7 +87,17 @@ struct StubPaymentService: PaymentService {
         try await Task.sleep(nanoseconds: 600_000_000)
         _ = customerEmail
         guard amountCents > 0 else { return .failed("Invalid amount") }
-        return .completed
+        return .completed(paymentIntentId: nil)
+    }
+
+    func cashOutAvailableBalance(runnerId: String) async throws -> CashOutResult {
+        _ = runnerId
+        try await Task.sleep(nanoseconds: 400_000_000)
+        return CashOutResult(
+            transferredCents: 0,
+            transferId: nil,
+            message: "Stub cash-out — configure Stripe live keys for real transfers."
+        )
     }
 
     func createConnectOnboardingLink(runnerId: String) async throws -> URL {

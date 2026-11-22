@@ -40,6 +40,31 @@ struct HomeView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     campusChip
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        path.append(AppRoute.cart)
+                    } label: {
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: "bag.fill")
+                                .foregroundStyle(AppColors.brand)
+                            if env.cart.cart.itemCount > 0 {
+                                Text("\(min(env.cart.cart.itemCount, 99))")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundStyle(AppColors.textOnBrand)
+                                    .padding(4)
+                                    .background(AppColors.brand)
+                                    .clipShape(Circle())
+                                    .offset(x: 8, y: -8)
+                            }
+                        }
+                        .frame(width: AppSpacing.minTapTarget, height: AppSpacing.minTapTarget)
+                    }
+                    .accessibilityLabel(
+                        env.cart.cart.itemCount > 0
+                            ? "Cart, \(env.cart.cart.itemCount) items"
+                            : "Cart"
+                    )
+                }
             }
             .navigationDestination(for: AppRoute.self) { route in
                 switch route {
@@ -60,7 +85,7 @@ struct HomeView: View {
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                FloatingCartBarHost(summary: env.cart.cart.itemCount > 0 ? env.cart.cart.summary : nil) {
+                FloatingCartBarHost(summary: env.cart.cart.itemCount > 0 ? env.cart.checkoutBarSummary : nil) {
                     path.append(AppRoute.cart)
                 }
             }

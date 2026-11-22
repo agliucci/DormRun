@@ -3,6 +3,7 @@ import SwiftUI
 struct CartView: View {
     @Binding var path: NavigationPath
     @Environment(AppEnvironment.self) private var env
+    @State private var didHideTabBar = false
 
     var body: some View {
         Group {
@@ -15,6 +16,11 @@ struct CartView: View {
                 ) { path = NavigationPath() }
             } else {
                 List {
+                    Section {
+                        Text(env.cart.pricingExplanation)
+                            .appText(.footnote, color: AppColors.textSecondary)
+                    }
+
                     ForEach(env.cart.cart.items) { item in
                         cartRow(item)
                     }
@@ -26,7 +32,12 @@ struct CartView: View {
                     }
 
                     Section {
-                        feeRow("Subtotal", env.cart.cart.subtotalCents)
+                        if env.cart.fulfillmentMode == .mealSwipe {
+                            feeRow("Food (runner swipe)", 0, subtitle: "Not charged to you")
+                            feeRow("Runner bump", env.cart.appliedBumpCents)
+                        } else {
+                            feeRow("Food", env.cart.menuSubtotalCents)
+                        }
                         feeRow("Delivery", env.cart.deliveryFeeCents)
                         feeRow("Tip", env.cart.tipCents)
                         HStack {
@@ -41,18 +52,34 @@ struct CartView: View {
                 }
                 .listStyle(.insetGrouped)
                 .scrollContentBackground(.hidden)
-                .safeAreaInset(edge: .bottom) {
-                    PrimaryButton(title: "Checkout", systemImage: "lock.fill") {
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    PrimaryButton(title: "Checkout", systemImage: "arrow.right.circle.fill") {
                         path.append(AppRoute.checkout)
                     }
-                    .padding(AppSpacing.screenMargin)
-                    .background(.ultraThinMaterial)
+                    .padding(.horizontal, AppSpacing.screenMargin)
+                    .padding(.vertical, AppSpacing.sm)
+                    .background {
+                        Rectangle()
+                            .fill(.ultraThinMaterial)
+                            .overlay(alignment: .top) { Divider().opacity(0.35) }
+                            .ignoresSafeArea(edges: .bottom)
+                    }
                 }
             }
         }
         .background(AppColors.background.ignoresSafeArea())
         .navigationTitle("Cart")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            guard !didHideTabBar else { return }
+            env.setFloatingTabBarHidden(true)
+            didHideTabBar = true
+        }
+        .onDisappear {
+            guard didHideTabBar else { return }
+            env.setFloatingTabBarHidden(false)
+            didHideTabBar = false
+        }
     }
 
     private func cartRow(_ item: CartItem) -> some View {
@@ -62,9 +89,14 @@ struct CartView: View {
                 if !item.specialInstructions.isEmpty {
                     Text(item.specialInstructions).appText(.caption, color: AppColors.textSecondary)
                 }
-                Text((Double(item.lineTotalCents) / 100).formatted(.currency(code: "USD")))
-                    .font(AppTypography.price)
-                    .monospacedDigit()
+                if env.cart.fulfillmentMode == .mealSwipe {
+                    Text("Via runner swipe")
+                        .appText(.caption, color: AppColors.textSecondary)
+                } else {
+                    Text((Double(item.lineTotalCents) / 100).formatted(.currency(code: "USD")))
+                        .font(AppTypography.price)
+                        .monospacedDigit()
+                }
             }
             Spacer()
             Stepper(
@@ -85,11 +117,18 @@ struct CartView: View {
         .padding(.vertical, AppSpacing.xxs)
     }
 
-    private func feeRow(_ title: String, _ cents: Int) -> some View {
-        HStack {
-            Text(title).appText(.body, color: AppColors.textSecondary)
+    private func feeRow(_ title: String, _ cents: Int, subtitle: String? = nil) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).appText(.body, color: AppColors.textSecondary)
+                if let subtitle {
+                    Text(subtitle).appText(.caption, color: AppColors.textTertiary)
+                }
+            }
             Spacer()
-            Text((Double(cents) / 100).formatted(.currency(code: "USD")))
+            Text(cents == 0 && env.cart.fulfillmentMode == .mealSwipe && title.contains("Food")
+                 ? "Swipe"
+                 : (Double(cents) / 100).formatted(.currency(code: "USD")))
                 .font(AppTypography.price)
                 .monospacedDigit()
         }
@@ -101,8 +140,10 @@ struct CheckoutView: View {
     @Environment(AppEnvironment.self) private var env
 
     @State private var isPaying = false
+    @State private var showPaymentSheet = false
     @State private var errorMessage: String?
     @State private var note: String = ""
+    @State private var didHideTabBar = false
 
     var body: some View {
         Form {
@@ -119,6 +160,11 @@ struct CheckoutView: View {
                     .lineLimit(2...4)
             }
 
+            Section("How this order works") {
+                Text(env.cart.pricingExplanation)
+                    .appText(.footnote, color: AppColors.textSecondary)
+            }
+
             Section("Runner tip") {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: AppSpacing.xs) {
@@ -130,7 +176,12 @@ struct CheckoutView: View {
             }
 
             Section("Summary") {
-                labeled("Subtotal", env.cart.cart.subtotalCents)
+                if env.cart.fulfillmentMode == .mealSwipe {
+                    labeled("Food (runner swipe)", 0, alt: "Swipe")
+                    labeled("Runner bump", env.cart.appliedBumpCents)
+                } else {
+                    labeled("Food", env.cart.menuSubtotalCents)
+                }
                 labeled("Delivery fee", env.cart.deliveryFeeCents)
                 labeled("Tip", env.cart.tipCents)
                 HStack {
@@ -143,8 +194,8 @@ struct CheckoutView: View {
             }
 
             Section {
-                Text("Apple Pay / PaymentSheet is stubbed — tapping Place order simulates a successful Stripe test charge.")
-                    .appText(.caption, color: AppColors.textTertiary)
+                Text(paymentFooterCopy)
+                    .appText(.footnote, color: AppColors.textSecondary)
             }
 
             if let errorMessage {
@@ -155,24 +206,58 @@ struct CheckoutView: View {
         .background(AppColors.background.ignoresSafeArea())
         .navigationTitle("Checkout")
         .navigationBarTitleDisplayMode(.inline)
-        .safeAreaInset(edge: .bottom) {
+        .safeAreaInset(edge: .bottom, spacing: 0) {
             PrimaryButton(
-                title: "Place order · Apple Pay",
+                title: "Pay · \((Double(env.cart.totalCents) / 100).formatted(.currency(code: "USD")))",
                 systemImage: "apple.logo",
                 isLoading: isPaying,
                 isEnabled: env.cart.dropoffBuildingId != nil
             ) {
-                Task { await placeOrder() }
+                errorMessage = nil
+                showPaymentSheet = true
             }
-            .padding(AppSpacing.screenMargin)
-            .background(.ultraThinMaterial)
+            .padding(.horizontal, AppSpacing.screenMargin)
+            .padding(.vertical, AppSpacing.sm)
+            .background {
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .overlay(alignment: .top) { Divider().opacity(0.35) }
+                    .ignoresSafeArea(edges: .bottom)
+            }
+        }
+        .sheet(isPresented: $showPaymentSheet) {
+            CheckoutPaymentSheet(
+                amountCents: env.cart.totalCents,
+                explanation: env.cart.pricingExplanation,
+                isProcessing: isPaying,
+                onPayWithApplePay: { Task { await placeOrder(preferApplePay: true) } },
+                onPayWithCard: { Task { await placeOrder(preferApplePay: false) } },
+                onCancel: { showPaymentSheet = false }
+            )
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
         }
         .onAppear {
             note = env.cart.dropoffNote
             if env.cart.dropoffBuildingId == nil {
                 env.cart.dropoffBuildingId = env.session.profile?.homeBuildingId ?? env.session.buildings.first?.id
             }
+            guard !didHideTabBar else { return }
+            env.setFloatingTabBarHidden(true)
+            didHideTabBar = true
         }
+        .onDisappear {
+            guard didHideTabBar else { return }
+            env.setFloatingTabBarHidden(false)
+            didHideTabBar = false
+        }
+    }
+
+    private var paymentFooterCopy: String {
+        if SupabaseConfig.stripePublishableKey != nil {
+            return "Apple Pay / card via Stripe. You’ll confirm on the next screen."
+        }
+        return "Payment sheet opens next — Apple Pay or card. Add your Stripe pk_test key in Config.xcconfig for live charges."
     }
 
     private func tipChip(_ tip: Int) -> some View {
@@ -193,23 +278,24 @@ struct CheckoutView: View {
         .buttonStyle(.plain)
     }
 
-    private func labeled(_ title: String, _ cents: Int) -> some View {
+    private func labeled(_ title: String, _ cents: Int, alt: String? = nil) -> some View {
         HStack {
             Text(title)
             Spacer()
-            Text((Double(cents) / 100).formatted(.currency(code: "USD")))
+            Text(alt ?? (Double(cents) / 100).formatted(.currency(code: "USD")))
                 .font(AppTypography.price)
                 .monospacedDigit()
         }
     }
 
-    private func placeOrder() async {
+    private func placeOrder(preferApplePay: Bool) async {
         guard let profile = env.session.profile,
               let buildingId = env.cart.dropoffBuildingId,
               let building = env.session.buildings.first(where: { $0.id == buildingId }),
               let locationId = env.cart.cart.locationId
         else {
             errorMessage = "Missing drop-off or location."
+            showPaymentSheet = false
             return
         }
 
@@ -222,6 +308,7 @@ struct CheckoutView: View {
             guard let location = locations.first(where: { $0.id == locationId })
                     ?? MockCatalogData.locations.first(where: { $0.id == locationId }) else {
                 errorMessage = "Couldn't find that dining location."
+                showPaymentSheet = false
                 return
             }
 
@@ -229,9 +316,15 @@ struct CheckoutView: View {
                 amountCents: env.cart.totalCents,
                 customerEmail: profile.email
             )
-            guard case .completed = payment else {
-                if case .canceled = payment { return }
-                if case .failed(let message) = payment { errorMessage = message }
+            let paymentIntentId: String?
+            switch payment {
+            case .completed(let id):
+                paymentIntentId = id
+            case .canceled:
+                return
+            case .failed(let message):
+                errorMessage = message
+                showPaymentSheet = false
                 return
             }
 
@@ -243,14 +336,79 @@ struct CheckoutView: View {
                 dropoffNote: note,
                 cart: env.cart.cart,
                 tipCents: env.cart.tipCents,
-                deliveryFeeCents: env.cart.deliveryFeeCents
+                deliveryFeeCents: env.cart.deliveryFeeCents,
+                runnerMealBumpCents: env.cart.appliedBumpCents,
+                paymentIntentId: paymentIntentId
             )
             env.cart.clear()
+            showPaymentSheet = false
             AppHaptics.success()
+            LiveActivityManager.shared.start(
+                for: order.id,
+                status: order.status.label,
+                eta: "Finding a runner…",
+                locationName: "\(order.locationName) → \(order.dropoffBuildingName)"
+            )
+            // Reset stack so Back from tracking goes Home (not Checkout → Cart → …).
+            path = NavigationPath()
             path.append(AppRoute.tracking(orderId: order.id))
+            _ = preferApplePay
         } catch {
             errorMessage = (error as? AppError)?.message ?? error.localizedDescription
+            showPaymentSheet = false
             AppHaptics.error()
+        }
+    }
+}
+
+/// Always-visible pay step so checkout never silently auto-completes.
+struct CheckoutPaymentSheet: View {
+    let amountCents: Int
+    let explanation: String
+    let isProcessing: Bool
+    let onPayWithApplePay: () -> Void
+    let onPayWithCard: () -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: AppSpacing.lg) {
+                Text((Double(amountCents) / 100).formatted(.currency(code: "USD")))
+                    .font(AppTypography.display)
+                    .monospacedDigit()
+
+                Text(explanation)
+                    .appText(.subheadline, color: AppColors.textSecondary)
+
+                PrimaryButton(
+                    title: "Apple Pay",
+                    systemImage: "apple.logo",
+                    isLoading: isProcessing
+                ) {
+                    onPayWithApplePay()
+                }
+
+                PrimaryButton(
+                    title: "Pay with card",
+                    systemImage: "creditcard.fill",
+                    style: .secondary,
+                    isLoading: isProcessing
+                ) {
+                    onPayWithCard()
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(AppSpacing.screenMargin)
+            .background(AppColors.background.ignoresSafeArea())
+            .navigationTitle("Pay")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel", action: onCancel)
+                        .disabled(isProcessing)
+                }
+            }
         }
     }
 }
@@ -283,8 +441,10 @@ struct OrderHistoryView: View {
                                     Spacer()
                                     Text(order.formattedTotal).font(AppTypography.price).monospacedDigit()
                                 }
-                                Text("\(order.status.label) · \(order.placedAt.formatted(date: .abbreviated, time: .shortened))")
+                                Text("\(order.status.label) · \(order.fulfillmentMode.title)")
                                     .appText(.caption, color: AppColors.textSecondary)
+                                Text(order.placedAt.formatted(date: .abbreviated, time: .shortened))
+                                    .appText(.caption, color: AppColors.textTertiary)
                             }
                         }
                         .swipeActions {
@@ -318,7 +478,6 @@ struct OrderHistoryView: View {
     }
 
     private func reorder(_ order: Order) {
-        // Lightweight reorder: jump home; full cart rebuild lands in a later polish.
         AppHaptics.light()
         _ = order
     }

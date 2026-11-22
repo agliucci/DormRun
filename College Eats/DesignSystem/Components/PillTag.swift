@@ -8,7 +8,7 @@ struct PillTag: View {
         case custom(title: String, systemImage: String?, tint: Color)
     }
 
-    /// `onMedia` = solid frosted chip for photos; `surface` = soft tinted chip on app backgrounds.
+    /// `onMedia` = solid frosted chip for photos; `surface` = solid chip on app backgrounds.
     enum Surface {
         case surface
         case onMedia
@@ -24,25 +24,25 @@ struct PillTag: View {
                 Image(systemName: systemImage)
                     .font(.system(size: isCompact ? 9 : 11, weight: .bold))
                     .symbolRenderingMode(.monochrome)
-                    .foregroundStyle(accent)
+                    .foregroundStyle(foreground)
             }
             Text(title)
                 .font(isCompact ? AppTypography.caption2 : AppTypography.caption)
-                .fontWeight(.semibold)
-                .foregroundStyle(labelColor)
+                .fontWeight(.bold)
+                .foregroundStyle(foreground)
         }
         .padding(.horizontal, isCompact ? AppSpacing.xs + 2 : AppSpacing.sm)
-        .padding(.vertical, isCompact ? AppSpacing.xxs : AppSpacing.xxs + 2)
+        .padding(.vertical, isCompact ? AppSpacing.xxs + 1 : AppSpacing.xs)
         .background(chipBackground)
         .overlay {
             Capsule(style: .continuous)
-                .strokeBorder(chipBorder, lineWidth: surface == .onMedia ? 0.5 : 1)
+                .strokeBorder(chipBorder, lineWidth: usesFilledStatusStyle ? 0 : 1)
         }
         .clipShape(Capsule(style: .continuous))
         .shadow(
-            color: surface == .onMedia ? Color.black.opacity(0.22) : .clear,
-            radius: surface == .onMedia ? 6 : 0,
-            y: surface == .onMedia ? 2 : 0
+            color: surface == .onMedia ? Color.black.opacity(0.22) : Color.black.opacity(0.12),
+            radius: surface == .onMedia ? 6 : 3,
+            y: surface == .onMedia ? 2 : 1
         )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)
@@ -90,39 +90,43 @@ struct PillTag: View {
         }
     }
 
-    private var labelColor: Color {
-        switch surface {
-        case .onMedia:
-            AppColors.textPrimary
-        case .surface:
-            switch kind {
-            case .dietary: AppColors.textPrimary
-            default: accent
-            }
+    /// Status + busy chips get solid filled capsules for max contrast on dark UI.
+    private var usesFilledStatusStyle: Bool {
+        switch kind {
+        case .status, .busy, .custom: true
+        case .dietary: false
         }
+    }
+
+    private var foreground: Color {
+        if usesFilledStatusStyle { return .white }
+        if surface == .onMedia { return Color(hex: "#1F1008") }
+        return AppColors.textPrimary
     }
 
     @ViewBuilder
     private var chipBackground: some View {
-        switch surface {
-        case .onMedia:
+        if usesFilledStatusStyle {
+            // Open = green, Packed = red/orange — same on photos and plain backgrounds.
             Capsule(style: .continuous)
-                .fill(.ultraThinMaterial)
+                .fill(accent)
+                .shadow(color: accent.opacity(0.45), radius: 4, y: 1)
+        } else if surface == .onMedia {
+            Capsule(style: .continuous)
+                .fill(Color.white.opacity(0.92))
+        } else {
+            Capsule(style: .continuous)
+                .fill(AppColors.surfaceElevated)
                 .overlay {
                     Capsule(style: .continuous)
-                        .fill(Color.white.opacity(0.72))
+                        .fill(accent.opacity(0.16))
                 }
-        case .surface:
-            Capsule(style: .continuous)
-                .fill(accent.opacity(0.14))
         }
     }
 
     private var chipBorder: Color {
-        switch surface {
-        case .onMedia: Color.white.opacity(0.55)
-        case .surface: accent.opacity(0.28)
-        }
+        if usesFilledStatusStyle { return .clear }
+        return surface == .onMedia ? Color.black.opacity(0.08) : accent.opacity(0.45)
     }
 }
 
@@ -132,6 +136,7 @@ struct PillTag: View {
         FlowLayout(spacing: AppSpacing.xs) {
             PillTag(kind: .status(.open))
             PillTag(kind: .busy(.high))
+            PillTag(kind: .custom(title: "~9 min", systemImage: "bicycle", tint: AppColors.brand))
             PillTag(kind: .dietary(.vegan))
         }
 
@@ -150,3 +155,4 @@ struct PillTag: View {
     .padding()
     .background(AppColors.background)
 }
+

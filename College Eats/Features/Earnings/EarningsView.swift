@@ -8,7 +8,9 @@ struct EarningsView: View {
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var cashOutMessage: String?
+    @State private var showLinkBankFromCashOut = false
     @State private var isCashingOut = false
+    @State private var isLinkingBank = false
 
     var body: some View {
         Group {
@@ -37,9 +39,21 @@ struct EarningsView: View {
         .refreshable { await load() }
         .alert("Cash out", isPresented: Binding(
             get: { cashOutMessage != nil },
-            set: { if !$0 { cashOutMessage = nil } }
+            set: { if !$0 { cashOutMessage = nil; showLinkBankFromCashOut = false } }
         )) {
-            Button("OK", role: .cancel) { cashOutMessage = nil }
+            if showLinkBankFromCashOut {
+                Button("Link bank account") {
+                    cashOutMessage = nil
+                    showLinkBankFromCashOut = false
+                    Task { await openConnect() }
+                }
+                Button("Not now", role: .cancel) {
+                    cashOutMessage = nil
+                    showLinkBankFromCashOut = false
+                }
+            } else {
+                Button("OK", role: .cancel) { cashOutMessage = nil }
+            }
         } message: {
             Text(cashOutMessage ?? "")
         }
@@ -92,7 +106,7 @@ struct EarningsView: View {
                 .monospacedDigit()
                 .contentTransition(.numericText())
 
-            Text("Tips + delivery fees from completed runs.")
+            Text("Tips + fees · retail food reimbursements included when you buy with card.")
                 .appText(.footnote, color: AppColors.textOnBrand.opacity(0.9))
 
             Button {
@@ -140,13 +154,29 @@ struct EarningsView: View {
                 systemImage: summary.bankLinked ? "checkmark.seal.fill" : "link"
             )
             .font(AppTypography.subheadline)
-            .foregroundStyle(summary.bankLinked ? AppColors.success : AppColors.textSecondary)
+            .foregroundStyle(summary.bankLinked ? AppColors.success : AppColors.brand)
 
-            Text("Runners get paid through Stripe Connect — same setup DoorDash/Uber use. Link your debit/bank once, then cash out here. Until Stripe goes live, this is test mode.")
+            Text("Tap below to open Stripe Connect and add your debit or bank account — same flow DoorDash uses.")
                 .appText(.footnote, color: AppColors.textTertiary)
 
-            PrimaryButton(title: summary.bankLinked ? "Manage payout account" : "Link bank account", style: .secondary) {
+            PrimaryButton(
+                title: summary.bankLinked ? "Manage payout account" : "Link bank account",
+                systemImage: "building.columns",
+                style: .secondary,
+                isLoading: isLinkingBank
+            ) {
                 Task { await openConnect() }
+            }
+
+            if !summary.bankLinked {
+                Button("I’ve finished linking") {
+                    RunnerPayoutStore.markLinkedFromReturnURL()
+                    AppHaptics.success()
+                    Task { await load() }
+                }
+                .font(AppTypography.subheadline.weight(.semibold))
+                .foregroundStyle(AppColors.brand)
+                .frame(maxWidth: .infinity, minHeight: AppSpacing.minTapTarget)
             }
         }
         .padding(AppSpacing.md)
@@ -164,11 +194,13 @@ struct EarningsView: View {
                     HStack {
                         VStack(alignment: .leading) {
                             Text(order.locationName).appText(.bodyEmphasized)
+                            Text(order.fulfillmentMode.title)
+                                .appText(.caption, color: AppColors.textSecondary)
                             Text(order.deliveredAt?.formatted(date: .abbreviated, time: .shortened) ?? "")
                                 .appText(.caption, color: AppColors.textSecondary)
                         }
                         Spacer()
-                        Text(((Double(order.deliveryFeeCents + order.tipCents)) / 100).formatted(.currency(code: "USD")))
+                        Text(((Double(order.runnerPayoutCents)) / 100).formatted(.currency(code: "USD")))
                             .font(AppTypography.price)
                             .monospacedDigit()
                     }
@@ -208,12 +240,17 @@ struct EarningsView: View {
 
     private func openConnect() async {
         guard let runnerId = env.session.profile?.id else { return }
+        isLinkingBank = true
+        defer { isLinkingBank = false }
         do {
             let url = try await env.payments.createConnectOnboardingLink(runnerId: runnerId)
             openURL(url)
             AppHaptics.light()
+            cashOutMessage = "Finish bank setup in the browser, then come back and tap “I’ve finished linking”."
+            showLinkBankFromCashOut = false
         } catch {
             cashOutMessage = (error as? AppError)?.message ?? error.localizedDescription
+            showLinkBankFromCashOut = false
             AppHaptics.error()
         }
     }
@@ -221,13 +258,32 @@ struct EarningsView: View {
     private func cashOut(_ summary: EarningsSummary) async {
         isCashingOut = true
         defer { isCashingOut = false }
-        try? await Task.sleep(nanoseconds: 450_000_000)
-        if summary.bankLinked {
-            cashOutMessage = "\(summary.availableCents.formattedAsMoney) is on the way to your bank. Real Stripe payouts land after Connect goes live."
-        } else {
-            cashOutMessage = "Link a bank account first (Stripe Connect). Until then, cash out is simulated — your \(summary.availableCents.formattedAsMoney) balance stays visible for testing."
+        guard let runnerId = env.session.profile?.id else { return }
+
+        if !summary.bankLinked {
+            cashOutMessage = "Link a bank account with Stripe Connect first — then cash out sends your balance for real."
+            showLinkBankFromCashOut = true
+            AppHaptics.light()
+            return
         }
-        AppHaptics.success()
+
+        do {
+            let result = try await env.payments.cashOutAvailableBalance(runnerId: runnerId)
+            cashOutMessage = result.message
+            showLinkBankFromCashOut = false
+            AppHaptics.success()
+            await load()
+        } catch {
+            let message = (error as? AppError)?.message ?? error.localizedDescription
+            if message.localizedCaseInsensitiveContains("link a bank") {
+                cashOutMessage = message
+                showLinkBankFromCashOut = true
+            } else {
+                cashOutMessage = message
+                showLinkBankFromCashOut = false
+            }
+            AppHaptics.error()
+        }
     }
 }
 

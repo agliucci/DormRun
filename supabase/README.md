@@ -3,9 +3,15 @@
 ```
 supabase/
 ├── config.toml
-├── migrations/20241121000000_init.sql   # schema, RLS, order state machine
-├── seed.sql                              # UMass Amherst campus, buildings, dining, menus
-└── functions/transition-order/index.ts   # edge function wrapping the RPC
+├── migrations/…                          # schema, RLS, payments columns
+├── ONE_SHOT_ORDERS_PAYMENTS.sql          # paste in SQL editor for live orders + Stripe cols
+├── seed.sql
+└── functions/
+    ├── transition-order/
+    ├── create-payment-intent/
+    ├── create-connect-account-link/
+    ├── create-cash-out/                  # Transfer available balance → runner bank
+    └── stripe-webhook/                   # PaymentIntent confirm / fail / refund
 ```
 
 ## Local development
@@ -24,7 +30,9 @@ supabase functions serve transition-order
 supabase link --project-ref <your-project-ref>
 supabase db push                                   # apply migrations
 psql "$DATABASE_URL" -f supabase/seed.sql          # seed (idempotent, fixed UUIDs)
-supabase functions deploy transition-order
+supabase functions deploy transition-order create-payment-intent create-connect-account-link create-cash-out
+supabase functions deploy stripe-webhook --no-verify-jwt
+# Also run ONE_SHOT_ORDERS_PAYMENTS.sql (or db push) before two-phone live orders.
 ```
 
 ## Order lifecycle

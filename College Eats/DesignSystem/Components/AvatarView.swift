@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct AvatarView: View {
     enum Size {
@@ -34,8 +35,15 @@ struct AvatarView: View {
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             Group {
-                if let imageURL {
+                if let imageURL, imageURL.isFileURL, let uiImage = UIImage(contentsOfFile: imageURL.path) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: size.dimension, height: size.dimension)
+                        .clipShape(Circle())
+                } else if let imageURL {
                     AsyncImageView(url: imageURL, cornerRadius: size.dimension / 2)
+                        .clipShape(Circle())
                 } else {
                     initialsView
                 }

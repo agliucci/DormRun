@@ -47,19 +47,7 @@ final class RunnerLocationService: NSObject {
         self.activeOrderId = orderId
         self.runnerId = runnerId
         requestPermissionIfNeeded()
-        guard isAuthorized else { return }
-
-        manager.startUpdatingLocation()
-        isPublishing = true
-        lastError = nil
-
-        publishTask?.cancel()
-        publishTask = Task { [weak self] in
-            while let self, !Task.isCancelled {
-                await self.publishOnce()
-                try? await Task.sleep(nanoseconds: 5_000_000_000)
-            }
-        }
+        beginPublishingIfAuthorized()
     }
 
     func stopPublishing() {
@@ -68,6 +56,26 @@ final class RunnerLocationService: NSObject {
         manager.stopUpdatingLocation()
         isPublishing = false
         activeOrderId = nil
+        runnerId = nil
+    }
+
+    private func beginPublishingIfAuthorized() {
+        guard activeOrderId != nil, runnerId != nil else { return }
+        guard isAuthorized else { return }
+
+        manager.startUpdatingLocation()
+        isPublishing = true
+        lastError = nil
+
+        publishTask?.cancel()
+        publishTask = Task { [weak self] in
+            // First ping ASAP so customer map isn’t stuck on “Waiting…”.
+            await self?.publishOnce()
+            while let self, !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                await self.publishOnce()
+            }
+        }
     }
 
     private var isAuthorized: Bool {
@@ -112,8 +120,8 @@ extension RunnerLocationService: CLLocationManagerDelegate {
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         Task { @MainActor in
             authorizationStatus = manager.authorizationStatus
-            if isPublishing, isAuthorized {
-                manager.startUpdatingLocation()
+            if activeOrderId != nil {
+                beginPublishingIfAuthorized()
             }
         }
     }
@@ -122,6 +130,10 @@ extension RunnerLocationService: CLLocationManagerDelegate {
         guard let location = locations.last else { return }
         Task { @MainActor in
             lastCoordinate = location.coordinate
+            // Push immediately when the first fix arrives.
+            if isPublishing {
+                await publishOnce()
+            }
         }
     }
 

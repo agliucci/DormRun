@@ -54,7 +54,8 @@ final class PushNotificationService: NSObject, UNUserNotificationCenterDelegate 
         )
         UNUserNotificationCenter.current().add(request)
 
-        LiveActivityManager.shared.update(status: title, eta: body)
+        // Don't pass notification body as ETA (it was showing "Worcester → Webster" in the island).
+        LiveActivityManager.shared.update(status: title, eta: "Updating…")
     }
 
     nonisolated func userNotificationCenter(

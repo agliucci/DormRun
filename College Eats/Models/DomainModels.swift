@@ -33,6 +33,27 @@ enum DiningLocationType: String, Codable, Sendable {
     case retail
 }
 
+/// How food is obtained at pickup.
+/// - retailPurchase: customer pays menu prices; runner buys with a card; app reimburses food + pays fee/tip.
+/// - mealSwipe: customer pays fee + tip (+ small bump); runner uses their own dining swipe; no food reimbursement.
+enum OrderFulfillmentMode: String, Codable, Sendable {
+    case retailPurchase
+    case mealSwipe
+
+    static func forLocationType(_ type: DiningLocationType) -> OrderFulfillmentMode {
+        type == .retail ? .retailPurchase : .mealSwipe
+    }
+
+    var title: String {
+        switch self {
+        case .retailPurchase: "Retail · pay for food"
+        case .mealSwipe: "Commons · runner swipe"
+        }
+    }
+
+    var customerPaysFood: Bool { self == .retailPurchase }
+}
+
 struct DiningLocation: Identifiable, Hashable, Codable, Sendable {
     let id: String
     let campusId: String
@@ -241,9 +262,13 @@ struct Order: Identifiable, Hashable, Codable, Sendable {
     let dropoffBuildingName: String
     var dropoffNote: String
     var status: OrderStatus
+    /// Menu / station estimate (what the runner should grab). Charged to customer only for retail.
     let subtotalCents: Int
     let deliveryFeeCents: Int
     let tipCents: Int
+    /// Small customer bump on commons swipe orders (extra for the runner).
+    let runnerMealBumpCents: Int
+    let fulfillmentMode: OrderFulfillmentMode
     let handoffCode: String
     let items: [OrderLineItem]
     var runner: RunnerSnapshot?
@@ -255,10 +280,31 @@ struct Order: Identifiable, Hashable, Codable, Sendable {
     var deliveredAt: Date?
     var cancelledAt: Date?
 
-    var totalCents: Int { subtotalCents + deliveryFeeCents + tipCents }
+    /// What Stripe charges the customer.
+    var chargedFoodCents: Int { fulfillmentMode.customerPaysFood ? subtotalCents : 0 }
+
+    var totalCents: Int {
+        chargedFoodCents + runnerMealBumpCents + deliveryFeeCents + tipCents
+    }
+
+    /// What the runner should receive: fee + tip + bump, plus food reimbursement on retail.
+    nonisolated var runnerPayoutCents: Int {
+        deliveryFeeCents + tipCents + runnerMealBumpCents
+            + (fulfillmentMode == .retailPurchase ? subtotalCents : 0)
+    }
 
     var formattedTotal: String {
         (Double(totalCents) / 100.0).formatted(.currency(code: "USD"))
+    }
+
+    var pickupInstructions: String {
+        switch fulfillmentMode {
+        case .retailPurchase:
+            let food = (Double(subtotalCents) / 100).formatted(.currency(code: "USD"))
+            return "Buy with your card (~\(food)). You’re reimbursed for food plus fee & tip."
+        case .mealSwipe:
+            return "Use one of your meal swipes, grab the listed items, then deliver. You’re paid fee + tip (no food reimbursement)."
+        }
     }
 
     func timelineSteps() -> [TimelineStep] {

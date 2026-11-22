@@ -11,6 +11,10 @@ struct TrackingView: View {
     @State private var showRating = false
     @State private var showConfetti = false
     @State private var cameraPosition: MapCameraPosition = .automatic
+    @State private var didHideTabBar = false
+    @State private var routeCoordinates: [CLLocationCoordinate2D] = []
+    /// Live minutes from Apple Maps directions when GPS / route is available.
+    @State private var liveRouteMinutes: Int?
 
     var body: some View {
         Group {
@@ -59,8 +63,13 @@ struct TrackingView: View {
                 statusHeader(order)
                 map(order)
                 if runnerCoordinate == nil, ![.delivered, .cancelled, .placed].contains(order.status) {
-                    Text("Waiting for live runner GPS…")
+                    Text(env.runnerLocation.lastError
+                         ?? "Waiting for live runner GPS… (runner must allow Location while delivering)")
                         .appText(.caption, color: AppColors.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else if runnerCoordinate != nil {
+                    Text("Live runner location · route updates as they move")
+                        .appText(.caption, color: AppColors.brand)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 if let runner = order.runner {
@@ -68,7 +77,7 @@ struct TrackingView: View {
                 }
                 if ![.placed, .cancelled].contains(order.status) {
                     NavigationLink {
-                        OrderChatView(order: order)
+                        OrderChatView(order: order, perspective: .asCustomer)
                     } label: {
                         Label("Chat with runner", systemImage: "bubble.left.and.bubble.right.fill")
                             .frame(maxWidth: .infinity)
@@ -82,12 +91,6 @@ struct TrackingView: View {
 
                 handoffCard(order)
 
-                if order.status == .placed {
-                    PrimaryButton(title: "Cancel order", style: .destructive) {
-                        Task { await cancel(order) }
-                    }
-                }
-
                 if order.status == .delivered {
                     PrimaryButton(title: "Rate your runner", systemImage: "star.fill") {
                         showRating = true
@@ -95,8 +98,33 @@ struct TrackingView: View {
                 }
             }
             .padding(AppSpacing.screenMargin)
-            .padding(.bottom, AppSpacing.xxl)
+            .padding(.bottom, 120)
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if order.status == .placed {
+                PrimaryButton(title: "Cancel order", style: .destructive) {
+                    Task { await cancel(order) }
+                }
+                .padding(.horizontal, AppSpacing.screenMargin)
+                .padding(.vertical, AppSpacing.sm)
+                .background {
+                    Rectangle()
+                        .fill(.ultraThinMaterial)
+                        .overlay(alignment: .top) { Divider().opacity(0.35) }
+                        .ignoresSafeArea(edges: .bottom)
+                }
+            }
+        }
+        .onAppear {
+            guard !didHideTabBar else { return }
+            env.setFloatingTabBarHidden(true)
+            didHideTabBar = true
+        }
+        .onDisappear {
+            guard didHideTabBar else { return }
+            env.setFloatingTabBarHidden(false)
+            didHideTabBar = false
         }
     }
 
@@ -124,6 +152,11 @@ struct TrackingView: View {
                     .tint(AppColors.accentWarm)
             }
 
+            if routeCoordinates.count >= 2 {
+                MapPolyline(coordinates: routeCoordinates)
+                    .stroke(AppColors.brand, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+            }
+
             if let runnerCoordinate {
                 Annotation("Runner", coordinate: runnerCoordinate) {
                     ZStack {
@@ -138,10 +171,85 @@ struct TrackingView: View {
                 }
             }
         }
-        .frame(height: 260)
+        .frame(height: 280)
         .appCornerRadius(AppRadius.xl)
         .mapStyle(.standard(elevation: .realistic))
         .allowsHitTesting(true)
+        .onChange(of: runnerCoordinate?.latitude) { _, _ in
+            Task { await refreshRoute(for: order) }
+        }
+        .onChange(of: order.status) { _, _ in
+            Task { await refreshRoute(for: order) }
+        }
+        .task(id: order.id) {
+            await refreshRoute(for: order)
+        }
+    }
+
+    private func refreshRoute(for order: Order) async {
+        let pickup = MockCatalogData.locations.first(where: { $0.id == order.locationId })?.coordinate
+        let dropoff = env.session.buildings.first(where: { $0.id == order.dropoffBuildingId })?.coordinate
+
+        let origin: CLLocationCoordinate2D?
+        let destination: CLLocationCoordinate2D?
+        switch order.status {
+        case .accepted, .atPickup:
+            origin = runnerCoordinate ?? pickup
+            destination = pickup
+        case .pickedUp, .enRoute:
+            origin = runnerCoordinate ?? pickup
+            destination = dropoff
+        default:
+            origin = pickup
+            destination = dropoff
+        }
+
+        guard let origin, let destination else {
+            routeCoordinates = []
+            fitCamera(points: [pickup, dropoff, runnerCoordinate].compactMap { $0 })
+            return
+        }
+
+        let request = MKDirections.Request()
+        request.source = MKMapItem(placemark: MKPlacemark(coordinate: origin))
+        request.destination = MKMapItem(placemark: MKPlacemark(coordinate: destination))
+        request.transportType = .walking
+
+        do {
+            let response = try await MKDirections(request: request).calculate()
+            if let route = response.routes.first {
+                routeCoordinates = route.polyline.coordinates
+                // Live Maps travel time from current GPS → next stop.
+                let minutes = max(1, Int(ceil(route.expectedTravelTime / 60)))
+                liveRouteMinutes = minutes
+                LiveActivityManager.shared.update(
+                    status: order.status.label,
+                    eta: DeliveryETA.formatMinutes(minutes),
+                    locationName: "\(order.locationName) → \(order.dropoffBuildingName)"
+                )
+            } else {
+                routeCoordinates = [origin, destination]
+                liveRouteMinutes = DeliveryETA.remainingMinutes(from: origin, to: destination)
+            }
+        } catch {
+            routeCoordinates = [origin, destination]
+            liveRouteMinutes = DeliveryETA.remainingMinutes(from: origin, to: destination)
+        }
+
+        fitCamera(points: [origin, destination, runnerCoordinate, pickup, dropoff].compactMap { $0 })
+    }
+
+    private func fitCamera(points: [CLLocationCoordinate2D]) {
+        guard !points.isEmpty else { return }
+        var rect = MKMapRect.null
+        for point in points {
+            let mapPoint = MKMapPoint(point)
+            rect = rect.union(MKMapRect(x: mapPoint.x, y: mapPoint.y, width: 1, height: 1))
+        }
+        let region = MKCoordinateRegion(rect.insetBy(dx: -rect.size.width * 0.35, dy: -rect.size.height * 0.35))
+        withAnimation(AppMotion.pinGlide) {
+            cameraPosition = .region(region)
+        }
     }
 
     private func runnerCard(_ runner: RunnerSnapshot, eta: String) -> some View {
@@ -191,10 +299,11 @@ struct TrackingView: View {
         switch order.status {
         case .placed:
             return "Finding a runner…"
-        case .accepted, .atPickup:
-            return "ETA \(DeliveryETA.formatMinutes(routeMinutes(for: order, fromRunner: false)))"
-        case .pickedUp, .enRoute:
-            return "ETA \(DeliveryETA.formatMinutes(routeMinutes(for: order, fromRunner: true)))"
+        case .accepted, .atPickup, .pickedUp, .enRoute:
+            if let liveRouteMinutes {
+                return "ETA \(DeliveryETA.formatMinutes(liveRouteMinutes))"
+            }
+            return "ETA \(DeliveryETA.formatMinutes(routeMinutes(for: order)))"
         case .delivered:
             return "Delivered"
         case .cancelled:
@@ -202,16 +311,25 @@ struct TrackingView: View {
         }
     }
 
-    /// Distance-based campus ETA: dining→dorm before pickup, runner→dorm after.
-    private func routeMinutes(for order: Order, fromRunner: Bool) -> Int {
+    /// Fallback when Maps directions aren’t ready yet — uses live GPS when available.
+    private func routeMinutes(for order: Order) -> Int {
         let dropoff = env.session.buildings.first(where: { $0.id == order.dropoffBuildingId })
         let vehicle = order.runner?.vehicleType ?? .bike
+        let pickup = MockCatalogData.locations.first(where: { $0.id == order.locationId })
 
-        if fromRunner, let runnerCoordinate, let dropoff {
-            return DeliveryETA.remainingMinutes(from: runnerCoordinate, to: dropoff.coordinate, vehicle: vehicle)
+        switch order.status {
+        case .accepted, .atPickup:
+            if let runnerCoordinate, let pickup {
+                return DeliveryETA.remainingMinutes(from: runnerCoordinate, to: pickup.coordinate, vehicle: vehicle)
+            }
+        case .pickedUp, .enRoute:
+            if let runnerCoordinate, let dropoff {
+                return DeliveryETA.remainingMinutes(from: runnerCoordinate, to: dropoff.coordinate, vehicle: vehicle)
+            }
+        default:
+            break
         }
 
-        let pickup = MockCatalogData.locations.first(where: { $0.id == order.locationId })
         if let pickup {
             return DeliveryETA.estimateMinutes(
                 from: pickup.coordinate,
@@ -227,10 +345,11 @@ struct TrackingView: View {
         do {
             let loaded = try await env.orderRepository.fetchOrder(id: orderId)
             order = loaded
+            // Reuses the same Live Activity if checkout already started one.
             LiveActivityManager.shared.start(
                 for: orderId,
                 status: loaded.status.label,
-                eta: etaText(for: loaded),
+                eta: etaText(for: loaded).replacingOccurrences(of: "ETA ", with: ""),
                 locationName: "\(loaded.locationName) → \(loaded.dropoffBuildingName)"
             )
         } catch {
@@ -263,12 +382,9 @@ struct TrackingView: View {
                 for await location in locationStream {
                     withAnimation(AppMotion.pinGlide) {
                         runnerCoordinate = location.coordinate
-                        cameraPosition = .region(
-                            MKCoordinateRegion(
-                                center: location.coordinate,
-                                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-                            )
-                        )
+                    }
+                    if let order {
+                        await refreshRoute(for: order)
                     }
                 }
             }
@@ -284,6 +400,14 @@ struct TrackingView: View {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+}
+
+private extension MKPolyline {
+    var coordinates: [CLLocationCoordinate2D] {
+        var coords = Array(repeating: kCLLocationCoordinate2DInvalid, count: pointCount)
+        getCoordinates(&coords, range: NSRange(location: 0, length: pointCount))
+        return coords
     }
 }
 
@@ -354,6 +478,18 @@ struct RateRunnerSheet: View {
                 stars: stars,
                 comment: comment
             )
+            // Refresh averaged runner rating on the signed-in profile when relevant.
+            if var profile = env.session.profile,
+               let runnerId = order.runnerId,
+               profile.id == runnerId {
+                let reviews = (try? await env.orderRepository.fetchRatings(forRunnerId: runnerId)) ?? []
+                if !reviews.isEmpty {
+                    let sum = reviews.reduce(0) { $0 + $1.stars }
+                    profile.rating = (Double(sum) / Double(reviews.count) * 100).rounded() / 100
+                    env.session.profile = profile
+                    _ = try? await env.authRepository.updateProfile(profile)
+                }
+            }
             AppHaptics.success()
             dismiss()
         } catch {

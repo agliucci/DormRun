@@ -27,7 +27,7 @@ enum AppTab: String, CaseIterable, Identifiable {
     }
 }
 
-/// Custom floating tab bar — white / liquid-glass capsule (not pink-tinted material).
+/// Custom floating tab bar — solid capsule so labels stay readable on dark menus.
 struct FloatingTabBar: View {
     @Binding var selection: AppTab
     @Environment(\.colorScheme) private var colorScheme
@@ -43,28 +43,33 @@ struct FloatingTabBar: View {
         .padding(.vertical, AppSpacing.xxs)
         .background {
             Capsule(style: .continuous)
-                .fill(Color.white.opacity(colorScheme == .dark ? 0.14 : 0.92))
-                .background {
-                    Capsule(style: .continuous)
-                        .fill(.ultraThinMaterial)
-                }
+                .fill(barFill)
                 .overlay {
                     Capsule(style: .continuous)
-                        .strokeBorder(
-                            Color.white.opacity(colorScheme == .dark ? 0.22 : 0.95),
-                            lineWidth: 0.5
-                        )
+                        .strokeBorder(barStroke, lineWidth: 1)
                 }
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.35 : 0.08), radius: 16, y: 6)
-                .clipShape(Capsule(style: .continuous))
+                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.45 : 0.12), radius: 18, y: 8)
         }
         .padding(.horizontal, AppSpacing.screenMargin)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Tab bar")
     }
 
+    private var barFill: Color {
+        colorScheme == .dark
+            ? AppColors.surfaceElevated
+            : Color.white.opacity(0.96)
+    }
+
+    private var barStroke: Color {
+        colorScheme == .dark
+            ? AppColors.border.opacity(0.9)
+            : Color.black.opacity(0.06)
+    }
+
     private func tabButton(_ tab: AppTab) -> some View {
-        Button {
+        let selected = selection == tab
+        return Button {
             AppHaptics.selection()
             withAnimation(AppMotion.spring) {
                 selection = tab
@@ -72,22 +77,23 @@ struct FloatingTabBar: View {
         } label: {
             VStack(spacing: AppSpacing.xxxs) {
                 ZStack {
-                    if selection == tab {
+                    if selected {
                         Capsule(style: .continuous)
-                            .fill(AppColors.brand.opacity(0.12))
+                            .fill(AppColors.brand.opacity(colorScheme == .dark ? 0.28 : 0.14))
                             .matchedGeometryEffect(id: "tab-pill", in: tabNamespace)
                     }
                     Image(systemName: tab.systemImage)
                         .font(.system(size: 18, weight: .semibold))
                         .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(selection == tab ? AppColors.brand : AppColors.textTertiary)
+                        .foregroundStyle(selected ? AppColors.brand : AppColors.textSecondary)
                         .frame(width: AppSpacing.minTapTarget, height: 28)
                 }
                 .frame(height: 32)
 
                 Text(tab.title)
                     .font(AppTypography.caption2)
-                    .foregroundStyle(selection == tab ? AppColors.brand : AppColors.textTertiary)
+                    .fontWeight(selected ? .semibold : .regular)
+                    .foregroundStyle(selected ? AppColors.brand : AppColors.textSecondary)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, AppSpacing.xs)
@@ -95,7 +101,7 @@ struct FloatingTabBar: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(tab.title)
-        .accessibilityAddTraits(selection == tab ? [.isSelected, .isButton] : .isButton)
+        .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
     }
 }
 

@@ -21,8 +21,17 @@ enum SupabaseConfig {
     static var stripePublishableKey: String? {
         guard let key = Bundle.main.object(forInfoDictionaryKey: "STRIPE_PUBLISHABLE_KEY") as? String,
               !key.isEmpty,
-              !key.contains("your_key") else { return nil }
+              !key.contains("your_key"),
+              !key.contains("placeholder") else { return nil }
         return key
+    }
+
+    /// Apple Pay merchant id, e.g. merchant.com.yourname.dormrun
+    static var stripeMerchantId: String? {
+        guard let id = Bundle.main.object(forInfoDictionaryKey: "STRIPE_MERCHANT_ID") as? String,
+              !id.isEmpty,
+              !id.contains("your") else { return nil }
+        return id
     }
 
     static var isConfigured: Bool {
@@ -30,12 +39,15 @@ enum SupabaseConfig {
     }
 }
 
-/// Live Supabase repositories land here once `supabase-swift` is added via SPM
-/// and Config.xcconfig is filled in. Until then, `AppEnvironment` uses mocks.
+/// Builds `AppEnvironment` with live repos when `Config.xcconfig` has Supabase URL + anon key.
 enum LiveRepositoryFactory {
     @MainActor
     static func makeEnvironment() -> AppEnvironment {
-        // Swap to live implementations when SupabaseConfig.isConfigured && package linked.
-        AppEnvironment()
+        AppEnvironment(
+            payments: StripePaymentService(
+                publishableKey: SupabaseConfig.stripePublishableKey,
+                merchantId: SupabaseConfig.stripeMerchantId
+            )
+        )
     }
 }

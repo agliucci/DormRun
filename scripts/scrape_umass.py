@@ -317,6 +317,56 @@ def pick_active_meal(parsed: dict[str, list[dict]]) -> tuple[str, list[dict]]:
     return "Lunch", []
 
 
+# Dish-name rules first (specific), then station fallback. UMass doesn't ship dish photos.
+DISH_IMAGE_RULES: list[tuple[tuple[str, ...], str]] = [
+    (("ramen", "shoyu", "udon", "pho"), "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&auto=format&fit=crop"),
+    (("pizza",), "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&auto=format&fit=crop"),
+    (("burger", "smash"), "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&auto=format&fit=crop"),
+    (("sushi", "nigiri", "maki", "sashimi"), "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600&auto=format&fit=crop"),
+    (("soup", "chowder", "bisque", "broth"), "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600&auto=format&fit=crop"),
+    (("salad", "greens", "arugula", "caesar"), "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&auto=format&fit=crop"),
+    (("spaghetti", "lasagna", "penne", "fettuccine", "pasta"), "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=600&auto=format&fit=crop"),
+    (("lo mein", "chow mein", "stir fry"), "https://images.unsplash.com/photo-1585032226651-759b368d7246?w=600&auto=format&fit=crop"),
+    (("taco", "burrito", "quesadilla", "tamale", "nacho"), "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=600&auto=format&fit=crop"),
+    (("wing", "tenders", "nugget"), "https://images.unsplash.com/photo-1527477396000-e27173b8ed81?w=600&auto=format&fit=crop"),
+    (("chicken",), "https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=600&auto=format&fit=crop"),
+    (("steak", "brisket", "beef"), "https://images.unsplash.com/photo-1600891964092-4316c288032e?w=600&auto=format&fit=crop"),
+    (("salmon", "tuna", "cod", "fish"), "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=600&auto=format&fit=crop"),
+    (("french toast", "pancake", "waffle", "omelet", "egg", "biscuit", "breakfast"), "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=600&auto=format&fit=crop"),
+    (("coffee", "latte", "espresso", "cappuccino"), "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=600&auto=format&fit=crop"),
+    (("oat bar", "granola", "cookie", "brownie", "blondie"), "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=600&auto=format&fit=crop"),
+    (("cake", "pie", "cheesecake"), "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=600&auto=format&fit=crop"),
+    (("donut", "doughnut", "beignet"), "https://images.unsplash.com/photo-1551024601-bec78aea704b?w=600&auto=format&fit=crop"),
+    (("sandwich", "panini", "wrap", "bagel", "club"), "https://images.unsplash.com/photo-1528735602780-2552fd8c2fcb?w=600&auto=format&fit=crop"),
+    (("fries", "potato", "hash"), "https://images.unsplash.com/photo-1573080496689-91bc8691f4c4?w=600&auto=format&fit=crop"),
+    (("rice bowl", "grain bowl", "power bowl"), "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=600&auto=format&fit=crop"),
+]
+
+STATION_IMAGE_RULES: list[tuple[tuple[str, ...], str]] = [
+    (("grill",), "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&auto=format&fit=crop"),
+    (("dessert", "bakery", "pastry"), "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=600&auto=format&fit=crop"),
+    (("noodle", "ramen"), "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&auto=format&fit=crop"),
+    (("pizza",), "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&auto=format&fit=crop"),
+    (("salad",), "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&auto=format&fit=crop"),
+    (("soup",), "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600&auto=format&fit=crop"),
+    (("deli", "sandwich"), "https://images.unsplash.com/photo-1528735602780-2552fd8c2fcb?w=600&auto=format&fit=crop"),
+]
+
+DEFAULT_FOOD_IMAGE = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop"
+
+
+def image_url_for_dish(name: str, station: str = "") -> str:
+    dish = name.lower()
+    station_hay = station.lower()
+    for keys, url in DISH_IMAGE_RULES:
+        if any(k in dish for k in keys):
+            return url
+    for keys, url in STATION_IMAGE_RULES:
+        if any(k in station_hay for k in keys):
+            return url
+    return DEFAULT_FOOD_IMAGE
+
+
 def price_for_station(station: str) -> int:
     s = station.lower()
     if "soup" in s:
@@ -468,9 +518,10 @@ def write_swift(buildings: list[dict], menus: dict[str, dict]) -> None:
                     '"', '\\"'
                 )
                 tags = tags_to_swift(it["tags"])
+                img = image_url_for_dish(it["name"], st["station"]).replace('"', '\\"')
                 lines.append(
                     f'            genItem("{item_id}", "{cat_id}", "{name}", '
-                    f'"{desc_swift}", {price}, {tags}),'
+                    f'"{desc_swift}", {price}, {tags}, "{img}"),'
                 )
             lines.append("        ]),")
         lines.append("    ]")
@@ -482,7 +533,8 @@ def write_swift(buildings: list[dict], menus: dict[str, dict]) -> None:
     lines.append("        _ name: String,")
     lines.append("        _ description: String,")
     lines.append("        _ price: Int,")
-    lines.append("        _ tags: [DietaryTag]")
+    lines.append("        _ tags: [DietaryTag],")
+    lines.append("        _ image: String")
     lines.append("    ) -> MenuItem {")
     lines.append("        MenuItem(")
     lines.append("            id: id,")
@@ -491,7 +543,7 @@ def write_swift(buildings: list[dict], menus: dict[str, dict]) -> None:
     lines.append("            description: description,")
     lines.append("            priceCents: price,")
     lines.append("            tags: tags,")
-    lines.append("            imageURL: nil,")
+    lines.append("            imageURL: URL(string: image),")
     lines.append("            isAvailable: true,")
     lines.append("            customizations: []")
     lines.append("        )")
@@ -546,9 +598,11 @@ def write_menus_sql(menus: dict[str, dict]) -> None:
                 eid = item_uuid(item_n)
                 item_n += 1
                 desc = f"From today's {meal.lower()} menu · {st['station']}"
+                img = image_url_for_dish(it["name"], st["station"])
                 item_rows.append(
                     f"  ('{eid}', '{cid}', '{sql_escape(it['name'])}', "
-                    f"'{sql_escape(desc)}', {price}, {tags_to_sql(it['tags'])}, null, true)"
+                    f"'{sql_escape(desc)}', {price}, {tags_to_sql(it['tags'])}, "
+                    f"'{sql_escape(img)}', true)"
                 )
         cat_ids_by_loc[loc] = cat_ids
 
@@ -716,7 +770,7 @@ def push_menus_to_supabase(menus: dict[str, dict]) -> None:
                         "description": f"From today's {meal.lower()} menu · {st['station']}",
                         "price_cents": price,
                         "tags": it["tags"],
-                        "image_url": None,
+                        "image_url": image_url_for_dish(it["name"], st["station"]),
                         "is_available": True,
                     }
                 )

@@ -74,16 +74,13 @@ struct RootView: View {
         }
     }
 
-    /// Runner tab = deliver food. Home/Orders = order food.
+    /// Runner tab = deliver mode for chat labels etc. Staying online survives Home/Orders switches.
     private func applyMode(for tab: AppTab) {
         guard var profile = env.session.profile else { return }
         let desired: AppUserMode = (tab == .runner) ? .runner : .customer
         guard profile.mode != desired else { return }
         profile.mode = desired
         env.session.profile = profile
-        if desired == .customer {
-            env.session.isOnlineAsRunner = false
-        }
         Task { _ = try? await env.authRepository.updateProfile(profile) }
     }
 
@@ -99,6 +96,10 @@ struct RootView: View {
         }
         if let buildings = try? await env.campusRepository.fetchBuildings(campusId: env.session.selectedCampus.id) {
             env.session.buildings = buildings
+        }
+        // After login, ask once so ETAs / runner pin work before the first delivery.
+        if env.session.isSignedIn, env.session.isOnboardingComplete {
+            env.runnerLocation.requestPermissionIfNeeded()
         }
     }
 }

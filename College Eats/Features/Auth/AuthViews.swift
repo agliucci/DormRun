@@ -214,6 +214,13 @@ struct OnboardingView: View {
                         }
                     }
                 }
+                Section("Location") {
+                    Text("DormRun uses your location to show live runner ETAs and share your pin while delivering.")
+                        .appText(.footnote, color: AppColors.textSecondary)
+                    Button("Allow location access") {
+                        env.runnerLocation.requestPermissionIfNeeded()
+                    }
+                }
                 if let errorMessage {
                     Text(errorMessage).foregroundStyle(AppColors.danger)
                 }
@@ -234,6 +241,8 @@ struct OnboardingView: View {
                 if buildingId.isEmpty || !env.session.buildings.contains(where: { $0.id == buildingId }) {
                     buildingId = env.session.buildings.first?.id ?? ""
                 }
+                // Prompt early so tracking / Deliver already have permission.
+                env.runnerLocation.requestPermissionIfNeeded()
             }
         }
     }
@@ -252,6 +261,7 @@ struct OnboardingView: View {
             env.session.profile = try await env.authRepository.updateProfile(profile)
             env.session.isOnboardingComplete = true
             env.cart.dropoffBuildingId = buildingId
+            env.runnerLocation.requestPermissionIfNeeded()
             dismiss()
         } catch {
             errorMessage = (error as? AppError)?.message ?? error.localizedDescription

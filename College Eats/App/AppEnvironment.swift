@@ -33,15 +33,16 @@ final class AppEnvironment {
     init(
         campusRepository: CampusRepository? = nil,
         authRepository: AuthRepository? = nil,
-        orderRepository: MockOrderRepository = MockOrderRepository(),
+        orderRepository: (any OrderRepository)? = nil,
         chatRepository: ChatRepository? = nil,
         payments: PaymentService = StubPaymentService()
     ) {
         self.campusRepository = campusRepository ?? SupabaseClientProvider.makeCampusRepository()
         self.authRepository = authRepository ?? SupabaseClientProvider.makeAuthRepository()
-        self.orderRepository = orderRepository
+        let orders = orderRepository ?? SupabaseClientProvider.makeOrderRepository()
+        self.orderRepository = orders
         self.chatRepository = chatRepository ?? SupabaseClientProvider.makeChatRepository()
-        self.realtime = MockRealtimeService(orderRepository: orderRepository)
+        self.realtime = MockRealtimeService(orderRepository: orders)
         self.payments = payments
         self.runnerLocation = RunnerLocationService()
         self.runnerLocation.attach(environment: self)
@@ -86,19 +87,59 @@ final class CartStore {
     var tipCents: Int = 200
     var dropoffBuildingId: String?
     var dropoffNote: String = ""
+    var locationType: DiningLocationType?
 
     let deliveryFeeCents = 299
+    /// Extra on commons swipe orders so the runner gets a little more than fee alone.
+    let runnerMealBumpCents = 250
     let tipPresets = [0, 100, 200, 300, 500]
 
-    var totalCents: Int {
-        cart.subtotalCents + deliveryFeeCents + tipCents
+    var fulfillmentMode: OrderFulfillmentMode {
+        OrderFulfillmentMode.forLocationType(locationType ?? .retail)
     }
 
-    func add(_ item: MenuItem, quantity: Int, options: [String], instructions: String, locationId: String) {
+    /// Menu total (shown as estimate on commons; charged only on retail).
+    var menuSubtotalCents: Int { cart.subtotalCents }
+
+    var chargedFoodCents: Int {
+        fulfillmentMode.customerPaysFood ? menuSubtotalCents : 0
+    }
+
+    var appliedBumpCents: Int {
+        fulfillmentMode == .mealSwipe ? runnerMealBumpCents : 0
+    }
+
+    var totalCents: Int {
+        chargedFoodCents + appliedBumpCents + deliveryFeeCents + tipCents
+    }
+
+    var checkoutBarSummary: CartBarSummary {
+        CartBarSummary(itemCount: cart.itemCount, totalCents: totalCents)
+    }
+
+    var pricingExplanation: String {
+        switch fulfillmentMode {
+        case .retailPurchase:
+            return "You pay food + delivery + tip. The runner buys it with a card and gets food reimbursed plus their fee & tip."
+        case .mealSwipe:
+            return "Dining commons: you pay delivery + tip (+ small runner bump). The runner uses their own meal swipe — no second $21 guest charge."
+        }
+    }
+
+    func add(
+        _ item: MenuItem,
+        quantity: Int,
+        options: [String],
+        instructions: String,
+        locationId: String,
+        locationType: DiningLocationType
+    ) {
         if let existingLocation = cart.locationId, existingLocation != locationId {
             cart = Cart()
+            self.locationType = nil
         }
         cart.locationId = locationId
+        self.locationType = locationType
         if let index = cart.items.firstIndex(where: {
             $0.menuItem.id == item.id && $0.selectedOptionIds == options && $0.specialInstructions == instructions
         }) {
@@ -133,5 +174,6 @@ final class CartStore {
         cart = Cart()
         tipCents = 200
         dropoffNote = ""
+        locationType = nil
     }
 }

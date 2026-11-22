@@ -37,6 +37,26 @@ struct LocationDetailView: View {
                         .padding(.top, AppSpacing.sm)
                 }
 
+                if location.type == .commons {
+                    Text("Commons delivery: you pay fee + tip. Your runner uses their own meal swipe — no guest dinner charge.")
+                        .appText(.footnote, color: AppColors.textSecondary)
+                        .padding(AppSpacing.md)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(AppColors.surfaceMuted)
+                        .appCornerRadius(AppRadius.md)
+                        .padding(.horizontal, AppSpacing.screenMargin)
+                        .padding(.top, AppSpacing.sm)
+                } else {
+                    Text("Retail: you pay menu prices + delivery + tip. The runner buys with a card and gets food reimbursed.")
+                        .appText(.footnote, color: AppColors.textSecondary)
+                        .padding(AppSpacing.md)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(AppColors.surfaceMuted)
+                        .appCornerRadius(AppRadius.md)
+                        .padding(.horizontal, AppSpacing.screenMargin)
+                        .padding(.top, AppSpacing.sm)
+                }
+
                 searchField
                     .padding(.horizontal, AppSpacing.screenMargin)
                     .padding(.top, AppSpacing.md)
@@ -73,12 +93,44 @@ struct LocationDetailView: View {
         .navigationTitle(location.name)
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            FloatingCartBarHost(summary: env.cart.cart.itemCount > 0 ? env.cart.cart.summary : nil) {
+            FloatingCartBarHost(summary: env.cart.cart.itemCount > 0 ? env.cart.checkoutBarSummary : nil) {
                 path.append(AppRoute.cart)
             }
         }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    path.append(AppRoute.cart)
+                } label: {
+                    ZStack(alignment: .topTrailing) {
+                        Image(systemName: "bag.fill")
+                            .foregroundStyle(AppColors.brand)
+                        if env.cart.cart.itemCount > 0 {
+                            Text("\(min(env.cart.cart.itemCount, 99))")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(AppColors.textOnBrand)
+                                .padding(4)
+                                .background(AppColors.brand)
+                                .clipShape(Circle())
+                                .offset(x: 8, y: -8)
+                        }
+                    }
+                    .frame(width: AppSpacing.minTapTarget, height: AppSpacing.minTapTarget)
+                }
+                .accessibilityLabel(
+                    env.cart.cart.itemCount > 0
+                        ? "Cart, \(env.cart.cart.itemCount) items"
+                        : "Cart"
+                )
+            }
+        }
         .sheet(item: $selectedItem) { item in
-            ItemCustomizationSheet(item: item, locationId: location.id, namespace: itemNamespace) {
+            ItemCustomizationSheet(
+                item: item,
+                locationId: location.id,
+                locationType: location.type,
+                namespace: itemNamespace
+            ) {
                 selectedItem = nil
             }
             .presentationDetents([.medium, .large])
@@ -193,6 +245,7 @@ struct LocationDetailView: View {
 struct ItemCustomizationSheet: View {
     let item: MenuItem
     let locationId: String
+    let locationType: DiningLocationType
     var namespace: Namespace.ID?
     var onDismiss: () -> Void
 
@@ -200,6 +253,8 @@ struct ItemCustomizationSheet: View {
     @State private var quantity = 1
     @State private var selectedOptions: Set<String> = []
     @State private var instructions = ""
+
+    private var isSwipeOrder: Bool { locationType == .commons }
 
     var body: some View {
         NavigationStack {
@@ -211,7 +266,13 @@ struct ItemCustomizationSheet: View {
                     VStack(alignment: .leading, spacing: AppSpacing.xs) {
                         Text(item.name).appText(.title2)
                         Text(item.description).appText(.body, color: AppColors.textSecondary)
-                        Text(item.formattedPrice).font(AppTypography.priceLarge).foregroundStyle(AppColors.textPrimary)
+                        if isSwipeOrder {
+                            Text("Runner swipe · you pay delivery + tip")
+                                .font(AppTypography.priceLarge)
+                                .foregroundStyle(AppColors.textPrimary)
+                        } else {
+                            Text(item.formattedPrice).font(AppTypography.priceLarge).foregroundStyle(AppColors.textPrimary)
+                        }
                         FlowLayout(spacing: AppSpacing.xs) {
                             ForEach(item.tags) { tag in
                                 PillTag(kind: .dietary(tag), isCompact: true)
@@ -245,7 +306,9 @@ struct ItemCustomizationSheet: View {
             .background(AppColors.background)
             .safeAreaInset(edge: .bottom) {
                 PrimaryButton(
-                    title: "Add \(lineTotal.formatted(.currency(code: "USD")))",
+                    title: isSwipeOrder
+                        ? "Add to order"
+                        : "Add \(lineTotal.formatted(.currency(code: "USD")))",
                     systemImage: "plus"
                 ) {
                     env.cart.add(
@@ -253,7 +316,8 @@ struct ItemCustomizationSheet: View {
                         quantity: quantity,
                         options: Array(selectedOptions),
                         instructions: instructions.trimmingCharacters(in: .whitespacesAndNewlines),
-                        locationId: locationId
+                        locationId: locationId,
+                        locationType: locationType
                     )
                     onDismiss()
                 }

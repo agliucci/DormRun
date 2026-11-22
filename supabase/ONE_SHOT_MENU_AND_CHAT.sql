@@ -50,3 +50,14 @@ create policy order_messages_insert on public.order_messages
   );
 
 grant select, insert on public.order_messages to authenticated, service_role;
+
+-- Runner Stripe Connect account id (for cash out).
+-- Written only by the create-connect-account-link edge function (service role).
+alter table public.profiles
+  add column if not exists stripe_account_id text;
+
+comment on column public.profiles.stripe_account_id is
+  'Stripe Connect Express account id (acct_…). Set by edge function, not by clients.';
+
+-- Authenticated users must NOT be able to forge this column; service_role updates it.
+revoke update (stripe_account_id) on public.profiles from authenticated;

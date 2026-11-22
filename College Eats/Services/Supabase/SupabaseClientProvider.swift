@@ -35,6 +35,13 @@ enum SupabaseClientProvider {
         return MockChatRepository()
     }
 
+    static func makeOrderRepository() -> any OrderRepository {
+        if let client = shared() {
+            return SupabaseOrderRepository(client: client)
+        }
+        return MockOrderRepository()
+    }
+
     static var usesLiveAuth: Bool {
         SupabaseConfig.isConfigured
     }

@@ -25,7 +25,9 @@ protocol OrderRepository: Sendable {
         dropoffNote: String,
         cart: Cart,
         tipCents: Int,
-        deliveryFeeCents: Int
+        deliveryFeeCents: Int,
+        runnerMealBumpCents: Int,
+        paymentIntentId: String?
     ) async throws -> Order
 
     func fetchOrder(id: String) async throws -> Order
@@ -35,7 +37,7 @@ protocol OrderRepository: Sendable {
     func fetchRatings(forRunnerId runnerId: String) async throws -> [RunnerRating]
 
     func fetchAvailableJobs(campusId: String) async throws -> [AvailableDeliveryJob]
-    func acceptJob(orderId: String, runnerId: String) async throws -> Order
+    func acceptJob(orderId: String, runner: RunnerSnapshot) async throws -> Order
     func transition(orderId: String, to status: OrderStatus, runnerId: String, handoffCode: String?) async throws -> Order
     func fetchActiveRunnerOrder(runnerId: String) async throws -> Order?
     func fetchEarnings(runnerId: String) async throws -> EarningsSummary
@@ -56,10 +58,17 @@ protocol PaymentService: Sendable {
     func presentPaymentSheet(amountCents: Int, customerEmail: String) async throws -> PaymentResult
     func createConnectOnboardingLink(runnerId: String) async throws -> URL
     func payoutStatus(runnerId: String) async throws -> String
+    func cashOutAvailableBalance(runnerId: String) async throws -> CashOutResult
 }
 
 enum PaymentResult: Sendable {
-    case completed
+    case completed(paymentIntentId: String?)
     case canceled
     case failed(String)
+}
+
+struct CashOutResult: Sendable {
+    let transferredCents: Int
+    let transferId: String?
+    let message: String
 }

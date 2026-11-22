@@ -67,8 +67,14 @@ struct RunnerHomeView: View {
                     .font(AppTypography.title3)
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: 64)
-                    .foregroundStyle(AppColors.textOnBrand)
-                    .background(env.session.isOnlineAsRunner ? AppColors.textSecondary : AppColors.brand)
+                    .foregroundStyle(env.session.isOnlineAsRunner ? AppColors.textPrimary : AppColors.textOnBrand)
+                    .background(env.session.isOnlineAsRunner ? AppColors.surfaceMuted : AppColors.brand)
+                    .overlay {
+                        if env.session.isOnlineAsRunner {
+                            RoundedRectangle(cornerRadius: AppRadius.xxl, style: .continuous)
+                                .strokeBorder(AppColors.border, lineWidth: 1.5)
+                        }
+                    }
                     .appCornerRadius(AppRadius.xxl)
             }
             .buttonStyle(PressableButtonStyle())
@@ -175,6 +181,8 @@ struct RunnerHomeView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(job.pickupName).appText(.headline)
+                    Text(job.order.fulfillmentMode.title)
+                        .appText(.caption, color: AppColors.brand)
                     Text("→ \(job.dropoffName)")
                         .appText(.subheadline, color: AppColors.textSecondary)
                 }
@@ -219,16 +227,29 @@ struct RunnerHomeView: View {
     }
 
     private func accept(_ job: AvailableDeliveryJob) async {
-        guard let runnerId = env.session.profile?.id else { return }
+        guard let profile = env.session.profile else { return }
+            let reviews = (try? await env.orderRepository.fetchRatings(forRunnerId: profile.id)) ?? []
+            let avg: Double = {
+                guard !reviews.isEmpty else { return profile.rating }
+                let sum = reviews.reduce(0) { $0 + $1.stars }
+                return (Double(sum) / Double(reviews.count) * 100).rounded() / 100
+            }()
+            let snapshot = RunnerSnapshot(
+                id: profile.id,
+                name: profile.fullName,
+                rating: avg,
+                vehicleType: profile.vehicleType ?? .bike,
+                avatarURL: profile.avatarURL
+            )
         do {
-            let order = try await env.orderRepository.acceptJob(orderId: job.order.id, runnerId: runnerId)
+            let order = try await env.orderRepository.acceptJob(orderId: job.order.id, runner: snapshot)
             activeOrder = order
             jobs.removeAll { $0.id == job.id }
-            env.runnerLocation.startPublishing(orderId: order.id, runnerId: runnerId)
+            env.runnerLocation.startPublishing(orderId: order.id, runnerId: profile.id)
             LiveActivityManager.shared.start(
                 for: order.id,
                 status: order.status.label,
-                eta: "Head to \(order.locationName)",
+                eta: "~10 min",
                 locationName: "\(order.locationName) → \(order.dropoffBuildingName)"
             )
             path.append(AppRoute.tracking(orderId: order.id))
@@ -246,6 +267,7 @@ struct RunnerActiveDeliveryView: View {
     @State private var code = ""
     @State private var errorMessage: String?
     @State private var isWorking = false
+    @State private var didHideTabBar = false
 
     var body: some View {
         ScrollView {
@@ -254,17 +276,31 @@ struct RunnerActiveDeliveryView: View {
                     Text(order.status.label).font(AppTypography.title2)
                     Text("\(order.locationName) → \(order.dropoffBuildingName)")
                         .appText(.subheadline, color: AppColors.textSecondary)
+                    Text(order.fulfillmentMode.title)
+                        .appText(.caption, color: AppColors.brand)
                     if !order.dropoffNote.isEmpty {
                         Text("Note: \(order.dropoffNote)")
                             .appText(.body, color: AppColors.textSecondary)
                     }
+
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        Text("Pickup").appText(.headline)
+                        Text(order.pickupInstructions)
+                            .appText(.subheadline, color: AppColors.textSecondary)
+                        Text("You’ll earn \((Double(order.runnerPayoutCents) / 100).formatted(.currency(code: "USD")))")
+                            .font(AppTypography.price)
+                            .monospacedDigit()
+                    }
+                    .padding(AppSpacing.md)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(AppCardBackground(radius: AppRadius.xl))
 
                     StatusTimeline(steps: order.timelineSteps())
                         .padding(AppSpacing.md)
                         .background(AppCardBackground(radius: AppRadius.xl))
 
                     NavigationLink {
-                        OrderChatView(order: order)
+                        OrderChatView(order: order, perspective: .asRunner)
                     } label: {
                         Label("Chat with customer", systemImage: "bubble.left.and.bubble.right.fill")
                             .frame(maxWidth: .infinity)
@@ -272,7 +308,14 @@ struct RunnerActiveDeliveryView: View {
                     .buttonStyle(.bordered)
                     .tint(AppColors.brand)
 
-                    nextAction(for: order)
+                    if order.status == .delivered {
+                        EmptyStateView(
+                            systemImage: "checkmark.seal.fill",
+                            title: "Delivered",
+                            message: "Nice work. Payout will show in Earnings."
+                        )
+                        .frame(height: 220)
+                    }
 
                     if let errorMessage {
                         Text(errorMessage).appText(.footnote, color: AppColors.danger)
@@ -282,15 +325,45 @@ struct RunnerActiveDeliveryView: View {
                 }
             }
             .padding(AppSpacing.screenMargin)
+            .padding(.bottom, 120)
         }
         .background(AppColors.background.ignoresSafeArea())
         .navigationTitle("Active delivery")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if let order, showsPinnedAction(for: order) {
+                pinnedAction(for: order)
+                    .padding(.horizontal, AppSpacing.screenMargin)
+                    .padding(.vertical, AppSpacing.sm)
+                    .background {
+                        Rectangle()
+                            .fill(.ultraThinMaterial)
+                            .overlay(alignment: .top) { Divider().opacity(0.35) }
+                            .ignoresSafeArea(edges: .bottom)
+                    }
+            }
+        }
+        .task {
+            env.setFloatingTabBarHidden(true)
+            didHideTabBar = true
+            await load()
+        }
+        .onDisappear {
+            guard didHideTabBar else { return }
+            env.setFloatingTabBarHidden(false)
+            didHideTabBar = false
+        }
+    }
+
+    private func showsPinnedAction(for order: Order) -> Bool {
+        switch order.status {
+        case .accepted, .atPickup, .pickedUp, .enRoute: true
+        default: false
+        }
     }
 
     @ViewBuilder
-    private func nextAction(for order: Order) -> some View {
+    private func pinnedAction(for order: Order) -> some View {
         switch order.status {
         case .accepted:
             PrimaryButton(title: "I'm at pickup", systemImage: "mappin.and.ellipse", isLoading: isWorking) {
@@ -305,13 +378,13 @@ struct RunnerActiveDeliveryView: View {
                 Task { await advance(to: .enRoute) }
             }
         case .enRoute:
-            VStack(alignment: .leading, spacing: AppSpacing.md) {
-                Text("Enter customer's 4-digit code").appText(.headline)
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                Text("Customer’s 4-digit code").appText(.caption, color: AppColors.textSecondary)
                 TextField("••••", text: $code)
                     .keyboardType(.numberPad)
                     .font(AppTypography.code)
                     .multilineTextAlignment(.center)
-                    .padding(AppSpacing.md)
+                    .padding(AppSpacing.sm)
                     .background(AppColors.surfaceMuted)
                     .appCornerRadius(AppRadius.md)
                     .onChange(of: code) { _, value in
@@ -326,13 +399,6 @@ struct RunnerActiveDeliveryView: View {
                     Task { await advance(to: .delivered, code: code) }
                 }
             }
-        case .delivered:
-            EmptyStateView(
-                systemImage: "checkmark.seal.fill",
-                title: "Delivered",
-                message: "Nice work. Payout will show in Earnings."
-            )
-            .frame(height: 220)
         default:
             EmptyView()
         }

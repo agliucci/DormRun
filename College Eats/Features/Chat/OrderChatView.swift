@@ -1,7 +1,17 @@
 import SwiftUI
 
+enum ChatPerspective: Sendable {
+    /// Infer from order + signed-in user when possible.
+    case auto
+    /// Customer talking to runner (tracking screen).
+    case asCustomer
+    /// Runner talking to customer (active delivery).
+    case asRunner
+}
+
 struct OrderChatView: View {
     let order: Order
+    var perspective: ChatPerspective = .auto
 
     @Environment(AppEnvironment.self) private var env
     @State private var messages: [OrderMessage] = []
@@ -26,7 +36,7 @@ struct OrderChatView: View {
             composer
         }
         .background(AppColors.background.ignoresSafeArea())
-        .navigationTitle("Chat")
+        .navigationTitle("Chat · \(peerLabel)")
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
         .refreshable { await load() }
@@ -115,7 +125,17 @@ struct OrderChatView: View {
     }
 
     private var peerLabel: String {
-        env.session.profile?.mode == .runner ? "customer" : "runner"
+        switch perspective {
+        case .asCustomer: return "runner"
+        case .asRunner: return "customer"
+        case .auto:
+            if let myId {
+                if myId == order.runnerId, myId != order.customerId { return "customer" }
+                if myId == order.customerId { return "runner" }
+            }
+            // Solo test (same account both sides): don't use tab mode — default to runner peer.
+            return "runner"
+        }
     }
 
     private var canSend: Bool {
@@ -188,6 +208,8 @@ struct OrderChatView: View {
                 subtotalCents: 1200,
                 deliveryFeeCents: 299,
                 tipCents: 200,
+                runnerMealBumpCents: 0,
+                fulfillmentMode: .retailPurchase,
                 handoffCode: "4821",
                 items: [],
                 runner: MockCatalogData.demoRunner,

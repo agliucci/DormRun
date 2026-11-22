@@ -85,9 +85,14 @@ actor MockOrderRepository: OrderRepository {
         dropoffNote: String,
         cart: Cart,
         tipCents: Int,
-        deliveryFeeCents: Int
+        deliveryFeeCents: Int,
+        runnerMealBumpCents: Int,
+        paymentIntentId: String?
     ) async throws -> Order {
         try await Task.sleep(nanoseconds: 500_000_000)
+        _ = paymentIntentId
+        let mode = OrderFulfillmentMode.forLocationType(location.type)
+        let bump = mode == .mealSwipe ? runnerMealBumpCents : 0
         let code = String(format: "%04d", Int.random(in: 1000...9999))
         let order = Order(
             id: UUID().uuidString,
@@ -102,6 +107,8 @@ actor MockOrderRepository: OrderRepository {
             subtotalCents: cart.subtotalCents,
             deliveryFeeCents: deliveryFeeCents,
             tipCents: tipCents,
+            runnerMealBumpCents: bump,
+            fulfillmentMode: mode,
             handoffCode: code,
             items: cart.items.map {
                 OrderLineItem(
@@ -169,6 +176,18 @@ actor MockOrderRepository: OrderRepository {
                 createdAt: .now
             )
         )
+        let avg = averageRating(for: runnerId)
+        for index in orders.indices where orders[index].runnerId == runnerId {
+            if let existing = orders[index].runner {
+                orders[index].runner = RunnerSnapshot(
+                    id: existing.id,
+                    name: existing.name,
+                    rating: avg,
+                    vehicleType: existing.vehicleType,
+                    avatarURL: existing.avatarURL
+                )
+            }
+        }
     }
 
     func fetchRatings(forRunnerId runnerId: String) async throws -> [RunnerRating] {
@@ -176,6 +195,13 @@ actor MockOrderRepository: OrderRepository {
         return ratings
             .filter { $0.toUserId == runnerId }
             .sorted { $0.createdAt > $1.createdAt }
+    }
+
+    func averageRating(for runnerId: String) -> Double {
+        let mine = ratings.filter { $0.toUserId == runnerId }
+        guard !mine.isEmpty else { return 5.0 }
+        let sum = mine.reduce(0) { $0 + $1.stars }
+        return (Double(sum) / Double(mine.count) * 100).rounded() / 100
     }
 
     func fetchAvailableJobs(campusId: String) async throws -> [AvailableDeliveryJob] {
@@ -190,12 +216,12 @@ actor MockOrderRepository: OrderRepository {
                     dropoffName: order.dropoffBuildingName,
                     distanceMeters: Double.random(in: 400...1800),
                     itemCount: order.items.reduce(0) { $0 + $1.quantity },
-                    payoutCents: order.deliveryFeeCents + order.tipCents
+                    payoutCents: order.runnerPayoutCents
                 )
             }
     }
 
-    func acceptJob(orderId: String, runnerId: String) async throws -> Order {
+    func acceptJob(orderId: String, runner: RunnerSnapshot) async throws -> Order {
         try await Task.sleep(nanoseconds: 400_000_000)
         guard let index = orders.firstIndex(where: { $0.id == orderId }) else {
             throw AppError(message: "Job no longer available.")
@@ -204,8 +230,8 @@ actor MockOrderRepository: OrderRepository {
             throw AppError(message: "Someone else grabbed this one.")
         }
         orders[index].status = .accepted
-        orders[index].runnerId = runnerId
-        orders[index].runner = MockCatalogData.demoRunner
+        orders[index].runnerId = runner.id
+        orders[index].runner = runner
         orders[index].acceptedAt = .now
         return orders[index]
     }
@@ -256,22 +282,41 @@ actor MockOrderRepository: OrderRepository {
 
     func fetchEarnings(runnerId: String) async throws -> EarningsSummary {
         try await Task.sleep(nanoseconds: 300_000_000)
-        let delivered = orders.filter { $0.runnerId == runnerId && $0.status == .delivered }
+        let delivered = orders
+            .filter { $0.runnerId == runnerId && $0.status == .delivered }
+            .sorted { ($0.deliveredAt ?? .distantPast) > ($1.deliveredAt ?? .distantPast) }
         let today = delivered
             .filter { ($0.deliveredAt ?? .distantPast).isToday }
-            .reduce(0) { $0 + $1.deliveryFeeCents + $1.tipCents }
-        let week = delivered.reduce(0) { $0 + $1.deliveryFeeCents + $1.tipCents }
-        let bars = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].enumerated().map { index, label in
-            DailyEarning(id: label, dayLabel: label, cents: [420, 880, 650, 1200, 980, 1500, max(today, 300)][index])
+            .reduce(0) { $0 + $1.runnerPayoutCents }
+        let calendar = Calendar.current
+        let weekStart = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: .now)) ?? .now
+        let weekOrders = delivered.filter { ($0.deliveredAt ?? .distantPast) >= weekStart }
+        let week = weekOrders.reduce(0) { $0 + $1.runnerPayoutCents }
+
+        // Mon…Sun bars from real deliveries this week (no fake floor).
+        var dayTotals = Array(repeating: 0, count: 7)
+        for order in weekOrders {
+            guard let deliveredAt = order.deliveredAt else { continue }
+            // Calendar: Sunday=1 … Saturday=7 → Mon-first index 0…6
+            let weekday = calendar.component(.weekday, from: deliveredAt)
+            let monFirst = (weekday + 5) % 7
+            dayTotals[monFirst] += order.runnerPayoutCents
         }
-        let earned = max(week, 6840)
+        let labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        let bars = labels.enumerated().map { index, label in
+            DailyEarning(id: label, dayLabel: label, cents: dayTotals[index])
+        }
+
+        let linked = RunnerPayoutStore.isBankLinked
         return EarningsSummary(
-            todayCents: max(today, 1250),
-            weekCents: earned,
-            availableCents: earned,
+            todayCents: today,
+            weekCents: week,
+            availableCents: week,
             dailyBars: bars,
-            payoutStatus: "Instant cash out in test mode · real bank deposits via Stripe Connect",
-            bankLinked: false,
+            payoutStatus: linked
+                ? "Bank linked · cash out sends tips, fees, and retail food reimbursements"
+                : "Link a bank with Stripe Connect to cash out",
+            bankLinked: linked,
             history: delivered
         )
     }
@@ -290,13 +335,15 @@ actor MockOrderRepository: OrderRepository {
                 dropoffBuildingName: "Oak Hall",
                 dropoffNote: "Lobby near the elevators",
                 status: .placed,
-                subtotalCents: 2145,
+                subtotalCents: 0,
                 deliveryFeeCents: 299,
                 tipCents: 300,
+                runnerMealBumpCents: 250,
+                fulfillmentMode: .mealSwipe,
                 handoffCode: "4821",
                 items: [
-                    OrderLineItem(id: "li1", name: "Worcester Smash Burger", quantity: 1, unitPriceCents: 1095, specialInstructions: nil),
-                    OrderLineItem(id: "li2", name: "Harvest Grain Bowl", quantity: 1, unitPriceCents: 875, specialInstructions: "Extra tahini"),
+                    OrderLineItem(id: "li1", name: "Worcester Smash Burger", quantity: 1, unitPriceCents: 0, specialInstructions: nil),
+                    OrderLineItem(id: "li2", name: "Harvest Grain Bowl", quantity: 1, unitPriceCents: 0, specialInstructions: "Extra tahini"),
                 ],
                 runner: nil,
                 placedAt: Date().addingTimeInterval(-120)
@@ -314,6 +361,8 @@ actor MockOrderRepository: OrderRepository {
                 subtotalCents: 1248,
                 deliveryFeeCents: 299,
                 tipCents: 200,
+                runnerMealBumpCents: 0,
+                fulfillmentMode: .retailPurchase,
                 handoffCode: "1190",
                 items: [
                     OrderLineItem(id: "li3", name: "Personal Pepperoni Pizza", quantity: 1, unitPriceCents: 899, specialInstructions: nil),
@@ -374,15 +423,3 @@ actor MockChatRepository: ChatRepository {
     }
 }
 
-private extension Date {
-    var isToday: Bool {
-        Calendar.current.isDateInToday(self)
-    }
-}
-
-private extension String {
-    var nilIfEmpty: String? {
-        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
-    }
-}

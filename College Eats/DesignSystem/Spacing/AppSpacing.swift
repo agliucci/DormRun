@@ -28,7 +28,8 @@ enum AppSpacing {
     static let carouselGap: CGFloat = 14
 
     /// Floating cart / tab bar bottom inset padding.
-    static let floatingBarInset: CGFloat = 12
+    /// Clears the floating tab bar so "View cart" isn't covered.
+    static let floatingBarInset: CGFloat = 76
 }
 
 enum AppRadius {

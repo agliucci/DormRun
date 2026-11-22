@@ -290,6 +290,210 @@ actor SupabaseHTTPClient {
         return first
     }
 
+    // MARK: - Orders
+
+    func insertOrder(
+        customerId: String,
+        locationId: String,
+        dropoffBuildingId: String,
+        dropoffNote: String?,
+        subtotalCents: Int,
+        deliveryFeeCents: Int,
+        tipCents: Int,
+        fulfillmentMode: String,
+        runnerMealBumpCents: Int,
+        paymentIntentId: String?,
+        paymentStatus: String
+    ) async throws -> RemoteOrderInsertResult {
+        struct Body: Encodable {
+            let customer_id: String
+            let location_id: String
+            let dropoff_building_id: String
+            let dropoff_note: String?
+            let subtotal_cents: Int
+            let delivery_fee_cents: Int
+            let tip_cents: Int
+            let fulfillment_mode: String
+            let runner_meal_bump_cents: Int
+            let payment_intent_id: String?
+            let payment_status: String
+            let status: String
+        }
+        let data = try await request(
+            path: "/rest/v1/orders",
+            method: "POST",
+            body: Body(
+                customer_id: customerId,
+                location_id: locationId,
+                dropoff_building_id: dropoffBuildingId,
+                dropoff_note: dropoffNote,
+                subtotal_cents: subtotalCents,
+                delivery_fee_cents: deliveryFeeCents,
+                tip_cents: tipCents,
+                fulfillment_mode: fulfillmentMode,
+                runner_meal_bump_cents: runnerMealBumpCents,
+                payment_intent_id: paymentIntentId,
+                payment_status: paymentStatus,
+                status: "placed"
+            ),
+            authorized: true,
+            prefer: "return=representation"
+        )
+        let rows = try JSONDecoder.supabase.decode([RemoteOrderInsertResult].self, from: data)
+        guard let first = rows.first else {
+            throw AppError(message: "Couldn't place order.")
+        }
+        return first
+    }
+
+    func insertOrderItems(_ items: [RemoteOrderItemInsert]) async throws {
+        guard !items.isEmpty else { return }
+        _ = try await request(
+            path: "/rest/v1/order_items",
+            method: "POST",
+            body: items,
+            authorized: true,
+            prefer: "return=minimal"
+        )
+    }
+
+    func fetchOrderRow(id: String) async throws -> RemoteOrderRow {
+        let select = SupabaseOrderContract.orderSelectWithEmbeds
+            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let data = try await request(
+            path: "/rest/v1/orders?id=eq.\(id)&select=\(select)&limit=1",
+            method: "GET",
+            body: Optional<String>.none,
+            authorized: true
+        )
+        let rows = try JSONDecoder.supabase.decode([RemoteOrderRow].self, from: data)
+        guard let first = rows.first else {
+            throw AppError(message: "Order not found.")
+        }
+        return first
+    }
+
+    func fetchOrders(customerId: String) async throws -> [RemoteOrderRow] {
+        let select = SupabaseOrderContract.orderSelectWithEmbeds
+            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let data = try await request(
+            path: "/rest/v1/orders?customer_id=eq.\(customerId)&select=\(select)&order=placed_at.desc",
+            method: "GET",
+            body: Optional<String>.none,
+            authorized: true
+        )
+        return try JSONDecoder.supabase.decode([RemoteOrderRow].self, from: data)
+    }
+
+    func fetchOpenOrders() async throws -> [RemoteOrderRow] {
+        let select = SupabaseOrderContract.orderSelectWithEmbeds
+            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let data = try await request(
+            path: "/rest/v1/orders?status=eq.placed&runner_id=is.null&select=\(select)&order=placed_at.asc",
+            method: "GET",
+            body: Optional<String>.none,
+            authorized: true
+        )
+        return try JSONDecoder.supabase.decode([RemoteOrderRow].self, from: data)
+    }
+
+    func fetchRunnerActiveOrders(runnerId: String) async throws -> [RemoteOrderRow] {
+        let select = SupabaseOrderContract.orderSelectWithEmbeds
+            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let data = try await request(
+            path: "/rest/v1/orders?runner_id=eq.\(runnerId)&status=in.(accepted,at_pickup,picked_up,en_route)&select=\(select)&order=accepted_at.desc&limit=1",
+            method: "GET",
+            body: Optional<String>.none,
+            authorized: true
+        )
+        return try JSONDecoder.supabase.decode([RemoteOrderRow].self, from: data)
+    }
+
+    func fetchRunnerDeliveredOrders(runnerId: String) async throws -> [RemoteOrderRow] {
+        let select = SupabaseOrderContract.orderSelectWithEmbeds
+            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let data = try await request(
+            path: "/rest/v1/orders?runner_id=eq.\(runnerId)&status=eq.delivered&select=\(select)&order=delivered_at.desc",
+            method: "GET",
+            body: Optional<String>.none,
+            authorized: true
+        )
+        return try JSONDecoder.supabase.decode([RemoteOrderRow].self, from: data)
+    }
+
+    func fetchHandoffCode(orderId: String) async throws -> String {
+        struct Body: Encodable { let p_order_id: String }
+        let data = try await request(
+            path: "/rest/v1/rpc/\(SupabaseOrderContract.getHandoffCodeRPC)",
+            method: "POST",
+            body: Body(p_order_id: orderId),
+            authorized: true
+        )
+        if let code = try? JSONDecoder().decode(String.self, from: data) {
+            return code
+        }
+        if let obj = try? JSONSerialization.jsonObject(with: data) as? String {
+            return obj
+        }
+        throw AppError(message: "Couldn't load handoff code.")
+    }
+
+    func transitionOrder(orderId: String, newStatus: String, handoffCode: String?) async throws -> Data {
+        struct Body: Encodable {
+            let order_id: String
+            let new_status: String
+            let handoff_code: String?
+        }
+        return try await request(
+            path: "/functions/v1/\(SupabaseOrderContract.transitionEdgeFunction)",
+            method: "POST",
+            body: Body(order_id: orderId, new_status: newStatus, handoff_code: handoffCode),
+            authorized: true
+        )
+    }
+
+    // MARK: - Edge functions
+
+    func createPaymentIntent(amountCents: Int, customerEmail: String) async throws -> StripePaymentIntentResponse {
+        struct Body: Encodable {
+            let amount_cents: Int
+            let currency: String
+            let customer_email: String
+        }
+        let data = try await request(
+            path: "/functions/v1/create-payment-intent",
+            method: "POST",
+            body: Body(amount_cents: amountCents, currency: "usd", customer_email: customerEmail),
+            authorized: true
+        )
+        return try JSONDecoder().decode(StripePaymentIntentResponse.self, from: data)
+    }
+
+    func createConnectAccountLink(refreshURL: String, returnURL: String) async throws -> StripeConnectLinkResponse {
+        struct Body: Encodable {
+            let refresh_url: String
+            let return_url: String
+        }
+        let data = try await request(
+            path: "/functions/v1/create-connect-account-link",
+            method: "POST",
+            body: Body(refresh_url: refreshURL, return_url: returnURL),
+            authorized: true
+        )
+        return try JSONDecoder().decode(StripeConnectLinkResponse.self, from: data)
+    }
+
+    func createCashOut() async throws -> StripeCashOutResponse {
+        struct Body: Encodable {}
+        let data = try await request(
+            path: "/functions/v1/create-cash-out",
+            method: "POST",
+            body: Body(),
+            authorized: true
+        )
+        return try JSONDecoder().decode(StripeCashOutResponse.self, from: data)
+    }
+
     // MARK: - Internals
 
     private func persist(session: AuthSession) {
@@ -315,7 +519,8 @@ actor SupabaseHTTPClient {
         method: String,
         body: Body?,
         authorized: Bool,
-        prefer: String? = nil
+        prefer: String? = nil,
+        isRetry: Bool = false
     ) async throws -> Data {
         guard let url = URL(string: path, relativeTo: baseURL) else {
             throw AppError(message: "Invalid Supabase URL.")
@@ -340,17 +545,61 @@ actor SupabaseHTTPClient {
         guard let http = response as? HTTPURLResponse else {
             throw AppError.generic
         }
-        guard (200..<300).contains(http.statusCode) else {
+        if !(200..<300).contains(http.statusCode) {
+            // Expired JWT on payments / REST — refresh once and retry.
+            if http.statusCode == 401, authorized, !isRetry, await refreshSessionIfPossible() {
+                return try await self.request(
+                    path: path,
+                    method: method,
+                    body: body,
+                    authorized: authorized,
+                    prefer: prefer,
+                    isRetry: true
+                )
+            }
             let message = String(data: data, encoding: .utf8) ?? "Request failed (\(http.statusCode))"
-            throw AppError(message: simplifiedAuthError(message, status: http.statusCode))
+            throw AppError(message: simplifiedError(message, status: http.statusCode, path: path))
         }
         return data
     }
 
-    private func simplifiedAuthError(_ raw: String, status: Int) -> String {
+    @discardableResult
+    private func refreshSessionIfPossible() async -> Bool {
+        guard let refreshToken else { return false }
+        struct Body: Encodable {
+            let refresh_token: String
+        }
+        do {
+            // Call auth refresh without going through authorized retry loop.
+            guard let url = URL(string: "/auth/v1/token?grant_type=refresh_token", relativeTo: baseURL) else {
+                return false
+            }
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue(anonKey, forHTTPHeaderField: "apikey")
+            request.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
+            request.httpBody = try JSONEncoder().encode(Body(refresh_token: refreshToken))
+            let (data, response) = try await session.data(for: request)
+            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+                return false
+            }
+            let session = try JSONDecoder().decode(AuthSession.self, from: data)
+            persist(session: session)
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    private func simplifiedError(_ raw: String, status: Int, path: String) -> String {
         let lower = raw.lowercased()
-        if lower.contains("otp") || status == 401 {
+        let isOTPPath = path.contains("/auth/v1/verify") || path.contains("/auth/v1/otp")
+        if isOTPPath || lower.contains("otp") || lower.contains("token has expired") && path.contains("/auth/") {
             return "Invalid or expired code. Request a new one."
+        }
+        if status == 401 {
+            return "Session expired. Sign out and sign back in, then try again."
         }
         if status == 429 {
             return "Too many attempts. Wait a moment and try again."
@@ -369,10 +618,18 @@ actor SupabaseHTTPClient {
 
     private func postgrestMessage(from raw: String) -> String? {
         guard let data = raw.data(using: .utf8),
-              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let message = obj["message"] as? String,
-              !message.isEmpty else { return nil }
-        return message
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return nil
+        }
+        // PostgREST uses "message"; edge functions often use "error".
+        if let message = obj["message"] as? String, !message.isEmpty { return message }
+        if let error = obj["error"] as? String, !error.isEmpty { return error }
+        if let errorObj = obj["error"] as? [String: Any],
+           let message = errorObj["message"] as? String,
+           !message.isEmpty {
+            return message
+        }
+        return nil
     }
 }
 
@@ -404,6 +661,7 @@ struct RemoteProfile: Codable, Sendable {
     var rating: Double?
     var avatar_url: String?
     var push_token: String?
+    var stripe_account_id: String?
 }
 
 struct RemoteCampus: Codable, Sendable {
@@ -477,6 +735,97 @@ struct RemoteOrderMessage: Codable, Sendable {
     let sender_id: String
     let body: String
     let created_at: String
+}
+
+struct StripePaymentIntentResponse: Codable, Sendable {
+    let paymentIntentId: String
+    let clientSecret: String
+    let publishableKey: String?
+}
+
+struct StripeConnectLinkResponse: Codable, Sendable {
+    let url: String
+    let accountId: String?
+}
+
+struct StripeCashOutResponse: Codable, Sendable {
+    let transferredCents: Int
+    let transferId: String?
+    let message: String?
+    let error: String?
+}
+
+struct RemoteOrderInsertResult: Codable, Sendable {
+    let id: String
+}
+
+struct RemoteOrderItemInsert: Encodable, Sendable {
+    let order_id: String
+    let menu_item_id: String?
+    let name: String
+    let unit_price_cents: Int
+    let quantity: Int
+    let special_instructions: String?
+}
+
+struct RemoteOrderRow: Codable, Sendable {
+    let id: String
+    let customer_id: String
+    let runner_id: String?
+    let location_id: String
+    let dropoff_building_id: String
+    let dropoff_note: String?
+    let status: String
+    let subtotal_cents: Int
+    let delivery_fee_cents: Int
+    let tip_cents: Int
+    let fulfillment_mode: String?
+    let runner_meal_bump_cents: Int?
+    let payment_intent_id: String?
+    let payment_status: String?
+    let runner_paid_out_at: String?
+    let runner_transfer_id: String?
+    let placed_at: String?
+    let accepted_at: String?
+    let at_pickup_at: String?
+    let picked_up_at: String?
+    let en_route_at: String?
+    let delivered_at: String?
+    let cancelled_at: String?
+    let cancel_reason: String?
+    let dining_locations: RemoteOrderLocationEmbed?
+    let dropoff: RemoteOrderBuildingEmbed?
+    let order_items: [RemoteOrderItemRow]?
+    let runner_profile: RemoteOrderRunnerEmbed?
+}
+
+struct RemoteOrderLocationEmbed: Codable, Sendable {
+    let name: String?
+    let lat: Double?
+    let lng: Double?
+    let type: String?
+}
+
+struct RemoteOrderBuildingEmbed: Codable, Sendable {
+    let name: String?
+    let lat: Double?
+    let lng: Double?
+}
+
+struct RemoteOrderItemRow: Codable, Sendable {
+    let id: String
+    let name: String
+    let quantity: Int
+    let unit_price_cents: Int
+    let special_instructions: String?
+}
+
+struct RemoteOrderRunnerEmbed: Codable, Sendable {
+    let id: String
+    let full_name: String?
+    let rating: Double?
+    let vehicle_type: String?
+    let avatar_url: String?
 }
 
 private extension JSONDecoder {

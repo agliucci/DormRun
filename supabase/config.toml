@@ -37,3 +37,9 @@ verify_jwt = true
 # Scheduled menu scrape — auth via x-cron-secret, not user JWT.
 [functions.scrape-menus]
 verify_jwt = false
+
+[functions.create-payment-intent]
+verify_jwt = true
+
+[functions.create-connect-account-link]
+verify_jwt = true
