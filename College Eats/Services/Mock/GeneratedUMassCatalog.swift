@@ -80,8 +80,8 @@ enum GeneratedUMassCatalog {
             genItem("wc-i1-1", "wc-grill-station", "Halal Burger Patty", "From today's lunch menu · Grill Station", 950, [.halal]),
             genItem("wc-i1-2", "wc-grill-station", "Hand Cut Sweet Potato Fries", "From today's lunch menu · Grill Station", 950, [.vegetarian]),
             genItem("wc-i1-3", "wc-grill-station", "Montreal Chicken Thigh", "From today's lunch menu · Grill Station", 950, [.halal]),
-            genItem("wc-i1-4", "wc-grill-station", "Roasted Butternut Squash", "From today's lunch menu · Grill Station", 950, [.halal]),
-            genItem("wc-i1-5", "wc-grill-station", "Roasted Zucchini", "From today's lunch menu · Grill Station", 950, [.halal]),
+            genItem("wc-i1-4", "wc-grill-station", "Roasted Brussels Sprouts, Squash & Cranberries", "From today's lunch menu · Grill Station", 950, [.halal]),
+            genItem("wc-i1-5", "wc-grill-station", "Roasted Zucchini & Summer Squash", "From today's lunch menu · Grill Station", 950, [.halal]),
         ]),
         MenuCategory(id: "wc-desserts", locationId: "d0000000-0000-4000-8000-000000000001", name: "Desserts", sortOrder: 2, items: [
             genItem("wc-i2-0", "wc-desserts", "Mint Brownie", "From today's lunch menu · Desserts", 350, [.vegetarian]),
@@ -155,82 +155,78 @@ enum GeneratedUMassCatalog {
 
     // Franklin — scraped Lunch menu from UMass Dining
     private static let franklinMenu: [MenuCategory] = [
-        MenuCategory(id: "fr-soups", locationId: "d0000000-0000-4000-8000-000000000002", name: "Soups", sortOrder: 0, items: [
-            genItem("fr-i0-0", "fr-soups", "8 oz Spicy Lentil & Veggie Soup", "From today's lunch menu · Soups", 450, [.halal]),
-            genItem("fr-i0-1", "fr-soups", "Aged Cheddar & Cauliflower Bisque", "From today's lunch menu · Soups", 450, [.halal, .vegetarian]),
+        MenuCategory(id: "fr-entrees", locationId: "d0000000-0000-4000-8000-000000000002", name: "Entrees", sortOrder: 0, items: [
+            genItem("fr-i0-0", "fr-entrees", "Mediterranean Lentil Veg Gratin w/Feta", "From today's lunch menu · Entrees", 875, [.halal, .vegetarian]),
+            genItem("fr-i0-1", "fr-entrees", "Nashville Hot Chicken Leg", "From today's lunch menu · Entrees", 875, [.halal]),
         ]),
-        MenuCategory(id: "fr-entrees", locationId: "d0000000-0000-4000-8000-000000000002", name: "Entrees", sortOrder: 1, items: [
-            genItem("fr-i1-0", "fr-entrees", "Mediterranean Lentil Veg Gratin w/Feta", "From today's lunch menu · Entrees", 875, [.halal, .vegetarian]),
-            genItem("fr-i1-1", "fr-entrees", "Nashville Hot Chicken Leg", "From today's lunch menu · Entrees", 875, [.halal]),
+        MenuCategory(id: "fr-starches", locationId: "d0000000-0000-4000-8000-000000000002", name: "Starches", sortOrder: 1, items: [
+            genItem("fr-i1-0", "fr-starches", "Brown Rice Pilaf", "From today's lunch menu · Starches", 875, [.halal]),
+            genItem("fr-i1-1", "fr-starches", "Roasted Diced Sweet Potato", "From today's lunch menu · Starches", 875, [.halal]),
         ]),
-        MenuCategory(id: "fr-starches", locationId: "d0000000-0000-4000-8000-000000000002", name: "Starches", sortOrder: 2, items: [
-            genItem("fr-i2-0", "fr-starches", "Brown Rice Pilaf", "From today's lunch menu · Starches", 875, [.halal]),
-            genItem("fr-i2-1", "fr-starches", "Roasted Diced Sweet Potato", "From today's lunch menu · Starches", 875, [.halal]),
+        MenuCategory(id: "fr-vegetables", locationId: "d0000000-0000-4000-8000-000000000002", name: "Vegetables", sortOrder: 2, items: [
+            genItem("fr-i2-0", "fr-vegetables", "Agrodolce Honeynut Squash", "From today's lunch menu · Vegetables", 875, [.vegetarian]),
+            genItem("fr-i2-1", "fr-vegetables", "Braised Collard Greens", "From today's lunch menu · Vegetables", 875, [.halal]),
         ]),
-        MenuCategory(id: "fr-vegetables", locationId: "d0000000-0000-4000-8000-000000000002", name: "Vegetables", sortOrder: 3, items: [
-            genItem("fr-i3-0", "fr-vegetables", "Agrodolce Honeynut Squash", "From today's lunch menu · Vegetables", 875, [.vegetarian]),
-            genItem("fr-i3-1", "fr-vegetables", "Sauteed Shredded Cabbage w/Bacon", "From today's lunch menu · Vegetables", 875, []),
+        MenuCategory(id: "fr-grill-station", locationId: "d0000000-0000-4000-8000-000000000002", name: "Grill Station", sortOrder: 3, items: [
+            genItem("fr-i3-0", "fr-grill-station", "Black Bean Burger", "From today's lunch menu · Grill Station", 950, [.halal]),
+            genItem("fr-i3-1", "fr-grill-station", "Grilled Cheese Sandwich", "From today's lunch menu · Grill Station", 950, [.vegetarian]),
+            genItem("fr-i3-2", "fr-grill-station", "Halal SPARE Beef Burger", "From today's lunch menu · Grill Station", 950, [.halal]),
+            genItem("fr-i3-3", "fr-grill-station", "Jerk Chicken Thigh", "From today's lunch menu · Grill Station", 950, [.halal]),
+            genItem("fr-i3-4", "fr-grill-station", "Sweet Potato Fries", "From today's lunch menu · Grill Station", 950, [.vegetarian]),
         ]),
-        MenuCategory(id: "fr-grill-station", locationId: "d0000000-0000-4000-8000-000000000002", name: "Grill Station", sortOrder: 4, items: [
-            genItem("fr-i4-0", "fr-grill-station", "Black Bean Burger", "From today's lunch menu · Grill Station", 950, [.halal]),
-            genItem("fr-i4-1", "fr-grill-station", "Grilled Cheese Sandwich", "From today's lunch menu · Grill Station", 950, [.vegetarian]),
-            genItem("fr-i4-2", "fr-grill-station", "Halal SPARE Beef Burger", "From today's lunch menu · Grill Station", 950, [.halal]),
-            genItem("fr-i4-3", "fr-grill-station", "Jerk Chicken Thigh", "From today's lunch menu · Grill Station", 950, [.halal]),
-            genItem("fr-i4-4", "fr-grill-station", "Sweet Potato Fries", "From today's lunch menu · Grill Station", 950, [.vegetarian]),
+        MenuCategory(id: "fr-vegetarian-line", locationId: "d0000000-0000-4000-8000-000000000002", name: "Vegetarian Line", sortOrder: 4, items: [
+            genItem("fr-i4-0", "fr-vegetarian-line", "Farmer's Market Salad", "From today's lunch menu · Vegetarian Line", 875, [.halal]),
+            genItem("fr-i4-1", "fr-vegetarian-line", "Harissa Braised Zucchini", "From today's lunch menu · Vegetarian Line", 875, [.halal]),
+            genItem("fr-i4-2", "fr-vegetarian-line", "Lemon Rice Pilaf", "From today's lunch menu · Vegetarian Line", 875, [.halal]),
+            genItem("fr-i4-3", "fr-vegetarian-line", "Moraccan Green Garbanzo Bean Salad", "From today's lunch menu · Vegetarian Line", 875, [.halal]),
+            genItem("fr-i4-4", "fr-vegetarian-line", "Sauteed Kale", "From today's lunch menu · Vegetarian Line", 875, [.halal]),
+            genItem("fr-i4-5", "fr-vegetarian-line", "Spiced Cauliflower & Chickpeas", "From today's lunch menu · Vegetarian Line", 875, [.halal]),
         ]),
-        MenuCategory(id: "fr-vegetarian-line", locationId: "d0000000-0000-4000-8000-000000000002", name: "Vegetarian Line", sortOrder: 5, items: [
-            genItem("fr-i5-0", "fr-vegetarian-line", "Farmer's Market Salad", "From today's lunch menu · Vegetarian Line", 875, [.halal]),
-            genItem("fr-i5-1", "fr-vegetarian-line", "Harissa Braised Zucchini", "From today's lunch menu · Vegetarian Line", 875, [.halal]),
-            genItem("fr-i5-2", "fr-vegetarian-line", "Lemon Rice Pilaf", "From today's lunch menu · Vegetarian Line", 875, [.halal]),
-            genItem("fr-i5-3", "fr-vegetarian-line", "Moraccan Green Garbanzo Bean Salad", "From today's lunch menu · Vegetarian Line", 875, [.halal]),
-            genItem("fr-i5-4", "fr-vegetarian-line", "Sauteed Kale", "From today's lunch menu · Vegetarian Line", 875, [.halal]),
-            genItem("fr-i5-5", "fr-vegetarian-line", "Spiced Cauliflower & Chickpeas", "From today's lunch menu · Vegetarian Line", 875, [.halal]),
+        MenuCategory(id: "fr-pasta-bar", locationId: "d0000000-0000-4000-8000-000000000002", name: "Pasta Bar", sortOrder: 5, items: [
+            genItem("fr-i5-0", "fr-pasta-bar", "Marinara Sauce", "From today's lunch menu · Pasta Bar", 875, [.halal]),
+            genItem("fr-i5-1", "fr-pasta-bar", "Meatball Sauce", "From today's lunch menu · Pasta Bar", 875, []),
+            genItem("fr-i5-2", "fr-pasta-bar", "Penne Pasta", "From today's lunch menu · Pasta Bar", 875, [.halal]),
+            genItem("fr-i5-3", "fr-pasta-bar", "Penne w/Meatballs & Creamy Tom Sauce (Beef & Pork)", "From today's lunch menu · Pasta Bar", 875, []),
+            genItem("fr-i5-4", "fr-pasta-bar", "Whole Grain Spaghetti", "From today's lunch menu · Pasta Bar", 875, [.halal]),
         ]),
-        MenuCategory(id: "fr-pasta-bar", locationId: "d0000000-0000-4000-8000-000000000002", name: "Pasta Bar", sortOrder: 6, items: [
-            genItem("fr-i6-0", "fr-pasta-bar", "Marinara Sauce", "From today's lunch menu · Pasta Bar", 875, [.halal]),
-            genItem("fr-i6-1", "fr-pasta-bar", "Meatball Sauce", "From today's lunch menu · Pasta Bar", 875, []),
-            genItem("fr-i6-2", "fr-pasta-bar", "Penne Pasta", "From today's lunch menu · Pasta Bar", 875, [.halal]),
-            genItem("fr-i6-3", "fr-pasta-bar", "Penne w/Meatballs & Creamy Tom Sauce (Beef & Pork)", "From today's lunch menu · Pasta Bar", 875, []),
-            genItem("fr-i6-4", "fr-pasta-bar", "Whole Grain Spaghetti", "From today's lunch menu · Pasta Bar", 875, [.halal]),
+        MenuCategory(id: "fr-deli-bar", locationId: "d0000000-0000-4000-8000-000000000002", name: "Deli Bar", sortOrder: 6, items: [
+            genItem("fr-i6-0", "fr-deli-bar", "Deli Ham", "From today's lunch menu · Deli Bar", 875, []),
+            genItem("fr-i6-1", "fr-deli-bar", "Deli Salami", "From today's lunch menu · Deli Bar", 875, []),
+            genItem("fr-i6-2", "fr-deli-bar", "Homemade Spicy Hummus", "From today's lunch menu · Deli Bar", 875, [.halal]),
+            genItem("fr-i6-3", "fr-deli-bar", "Provolone Cheese", "From today's lunch menu · Deli Bar", 875, [.halal, .vegetarian]),
+            genItem("fr-i6-4", "fr-deli-bar", "Tuna Salad", "From today's lunch menu · Deli Bar", 875, [.halal]),
+            genItem("fr-i6-5", "fr-deli-bar", "Turkey Breast", "From today's lunch menu · Deli Bar", 875, [.halal]),
         ]),
-        MenuCategory(id: "fr-deli-bar", locationId: "d0000000-0000-4000-8000-000000000002", name: "Deli Bar", sortOrder: 7, items: [
-            genItem("fr-i7-0", "fr-deli-bar", "Deli Ham", "From today's lunch menu · Deli Bar", 875, []),
-            genItem("fr-i7-1", "fr-deli-bar", "Deli Salami", "From today's lunch menu · Deli Bar", 875, []),
-            genItem("fr-i7-2", "fr-deli-bar", "Homemade Spicy Hummus", "From today's lunch menu · Deli Bar", 875, [.halal]),
-            genItem("fr-i7-3", "fr-deli-bar", "Provolone Cheese", "From today's lunch menu · Deli Bar", 875, [.halal, .vegetarian]),
-            genItem("fr-i7-4", "fr-deli-bar", "Tuna Salad", "From today's lunch menu · Deli Bar", 875, [.halal]),
-            genItem("fr-i7-5", "fr-deli-bar", "Turkey Breast", "From today's lunch menu · Deli Bar", 875, [.halal]),
+        MenuCategory(id: "fr-desserts", locationId: "d0000000-0000-4000-8000-000000000002", name: "Desserts", sortOrder: 7, items: [
+            genItem("fr-i7-0", "fr-desserts", "Mint Brownie", "From today's lunch menu · Desserts", 350, [.vegetarian]),
+            genItem("fr-i7-1", "fr-desserts", "White Choc Cranberry Cookie", "From today's lunch menu · Desserts", 350, [.halal, .vegetarian]),
         ]),
-        MenuCategory(id: "fr-desserts", locationId: "d0000000-0000-4000-8000-000000000002", name: "Desserts", sortOrder: 8, items: [
-            genItem("fr-i8-0", "fr-desserts", "Mint Brownie", "From today's lunch menu · Desserts", 350, [.vegetarian]),
-            genItem("fr-i8-1", "fr-desserts", "White Choc Cranberry Cookie", "From today's lunch menu · Desserts", 350, [.halal, .vegetarian]),
+        MenuCategory(id: "fr-stir-fry-station", locationId: "d0000000-0000-4000-8000-000000000002", name: "Stir Fry Station", sortOrder: 8, items: [
+            genItem("fr-i8-0", "fr-stir-fry-station", "Plant-Based Condiments Bar w/Almonds", "From today's lunch menu · Stir Fry Station", 875, []),
         ]),
-        MenuCategory(id: "fr-stir-fry-station", locationId: "d0000000-0000-4000-8000-000000000002", name: "Stir Fry Station", sortOrder: 9, items: [
-            genItem("fr-i9-0", "fr-stir-fry-station", "Plant-Based Condiments Bar w/Almonds", "From today's lunch menu · Stir Fry Station", 875, []),
+        MenuCategory(id: "fr-pizza", locationId: "d0000000-0000-4000-8000-000000000002", name: "Pizza", sortOrder: 9, items: [
+            genItem("fr-i9-0", "fr-pizza", "Cheese Pizza", "From today's lunch menu · Pizza", 875, [.halal, .vegetarian]),
+            genItem("fr-i9-1", "fr-pizza", "Pepperoni Pizza", "From today's lunch menu · Pizza", 875, []),
         ]),
-        MenuCategory(id: "fr-pizza", locationId: "d0000000-0000-4000-8000-000000000002", name: "Pizza", sortOrder: 10, items: [
-            genItem("fr-i10-0", "fr-pizza", "Cheese Pizza", "From today's lunch menu · Pizza", 875, [.halal, .vegetarian]),
-            genItem("fr-i10-1", "fr-pizza", "Pepperoni Pizza", "From today's lunch menu · Pizza", 875, []),
+        MenuCategory(id: "fr-gluten-free", locationId: "d0000000-0000-4000-8000-000000000002", name: "Gluten Free", sortOrder: 10, items: [
+            genItem("fr-i10-0", "fr-gluten-free", "Grilled Cheese Bar", "From today's lunch menu · Gluten Free", 875, []),
         ]),
-        MenuCategory(id: "fr-gluten-free", locationId: "d0000000-0000-4000-8000-000000000002", name: "Gluten Free", sortOrder: 11, items: [
-            genItem("fr-i11-0", "fr-gluten-free", "Grilled Cheese Bar", "From today's lunch menu · Gluten Free", 875, []),
+        MenuCategory(id: "fr-latino-frk-hmp", locationId: "d0000000-0000-4000-8000-000000000002", name: "Latino FRK HMP", sortOrder: 11, items: [
+            genItem("fr-i11-0", "fr-latino-frk-hmp", "Chicken Fajita Meat", "From today's lunch menu · Latino FRK HMP", 875, [.halal]),
+            genItem("fr-i11-1", "fr-latino-frk-hmp", "Flour Tortilla", "From today's lunch menu · Latino FRK HMP", 875, [.halal]),
+            genItem("fr-i11-2", "fr-latino-frk-hmp", "Latin Toppings", "From today's lunch menu · Latino FRK HMP", 875, [.halal, .vegetarian]),
+            genItem("fr-i11-3", "fr-latino-frk-hmp", "Pinto Beans", "From today's lunch menu · Latino FRK HMP", 875, [.halal]),
+            genItem("fr-i11-4", "fr-latino-frk-hmp", "Yellow Rice", "From today's lunch menu · Latino FRK HMP", 875, [.halal]),
+            genItem("fr-i11-5", "fr-latino-frk-hmp", "Zucchini, Corn & Peppers", "From today's lunch menu · Latino FRK HMP", 875, [.halal]),
         ]),
-        MenuCategory(id: "fr-latino-frk-hmp", locationId: "d0000000-0000-4000-8000-000000000002", name: "Latino FRK HMP", sortOrder: 12, items: [
-            genItem("fr-i12-0", "fr-latino-frk-hmp", "Chicken Fajita Meat", "From today's lunch menu · Latino FRK HMP", 875, [.halal]),
-            genItem("fr-i12-1", "fr-latino-frk-hmp", "Flour Tortilla", "From today's lunch menu · Latino FRK HMP", 875, [.halal]),
-            genItem("fr-i12-2", "fr-latino-frk-hmp", "Latin Toppings", "From today's lunch menu · Latino FRK HMP", 875, [.halal, .vegetarian]),
-            genItem("fr-i12-3", "fr-latino-frk-hmp", "Pinto Beans", "From today's lunch menu · Latino FRK HMP", 875, [.halal]),
-            genItem("fr-i12-4", "fr-latino-frk-hmp", "Yellow Rice", "From today's lunch menu · Latino FRK HMP", 875, [.halal]),
-            genItem("fr-i12-5", "fr-latino-frk-hmp", "Zucchini, Corn & Peppers", "From today's lunch menu · Latino FRK HMP", 875, [.halal]),
-        ]),
-        MenuCategory(id: "fr-express", locationId: "d0000000-0000-4000-8000-000000000002", name: "Express", sortOrder: 13, items: [
-            genItem("fr-i13-0", "fr-express", "Brown Rice", "From today's lunch menu · Express", 875, [.halal]),
-            genItem("fr-i13-1", "fr-express", "Jasmine Rice", "From today's lunch menu · Express", 875, [.halal]),
-            genItem("fr-i13-2", "fr-express", "Stir Fried Vegetables", "From today's lunch menu · Express", 875, [.halal]),
-            genItem("fr-i13-3", "fr-express", "Thai Red Curry Chicken", "From today's lunch menu · Express", 875, []),
-            genItem("fr-i13-4", "fr-express", "Thai Red Curry Tofu", "From today's lunch menu · Express", 875, [.halal]),
-            genItem("fr-i13-5", "fr-express", "Thai Seafood w/Basil", "From today's lunch menu · Express", 875, [.halal]),
-            genItem("fr-i13-6", "fr-express", "Vegetable Spring Rolls", "From today's lunch menu · Express", 875, [.vegetarian]),
+        MenuCategory(id: "fr-express", locationId: "d0000000-0000-4000-8000-000000000002", name: "Express", sortOrder: 12, items: [
+            genItem("fr-i12-0", "fr-express", "Brown Rice", "From today's lunch menu · Express", 875, [.halal]),
+            genItem("fr-i12-1", "fr-express", "Jasmine Rice", "From today's lunch menu · Express", 875, [.halal]),
+            genItem("fr-i12-2", "fr-express", "Stir Fried Vegetables", "From today's lunch menu · Express", 875, [.halal]),
+            genItem("fr-i12-3", "fr-express", "Thai Red Curry Chicken", "From today's lunch menu · Express", 875, []),
+            genItem("fr-i12-4", "fr-express", "Thai Red Curry Tofu", "From today's lunch menu · Express", 875, [.halal]),
+            genItem("fr-i12-5", "fr-express", "Thai Seafood w/Basil", "From today's lunch menu · Express", 875, [.halal]),
+            genItem("fr-i12-6", "fr-express", "Vegetable Spring Rolls", "From today's lunch menu · Express", 875, [.vegetarian]),
         ]),
     ]
 
@@ -304,8 +300,8 @@ enum GeneratedUMassCatalog {
     // Hampshire — scraped Lunch menu from UMass Dining
     private static let hampshireMenu: [MenuCategory] = [
         MenuCategory(id: "hm-soups", locationId: "d0000000-0000-4000-8000-000000000004", name: "Soups", sortOrder: 0, items: [
-            genItem("hm-i0-0", "hm-soups", "Aged Cheddar & Cauliflower Bisque", "From today's lunch menu · Soups", 450, [.halal, .vegetarian]),
-            genItem("hm-i0-1", "hm-soups", "Minestrone", "From today's lunch menu · Soups", 450, [.halal, .vegetarian]),
+            genItem("hm-i0-0", "hm-soups", "Green Chile Posole", "From today's lunch menu · Soups", 450, [.halal]),
+            genItem("hm-i0-1", "hm-soups", "Roasted Red Pepper & Smoked Gouda Bisque", "From today's lunch menu · Soups", 450, [.halal, .vegetarian]),
         ]),
         MenuCategory(id: "hm-entrees", locationId: "d0000000-0000-4000-8000-000000000004", name: "Entrees", sortOrder: 1, items: [
             genItem("hm-i1-0", "hm-entrees", "Mediterranean Lentil Veg Gratin w/Feta", "From today's lunch menu · Entrees", 875, [.halal, .vegetarian]),
@@ -330,23 +326,22 @@ enum GeneratedUMassCatalog {
             genItem("hm-i4-7", "hm-grill-station", "Sweet Potato Fries", "From today's lunch menu · Grill Station", 950, [.vegetarian]),
         ]),
         MenuCategory(id: "hm-vegetarian-line", locationId: "d0000000-0000-4000-8000-000000000004", name: "Vegetarian Line", sortOrder: 5, items: [
-            genItem("hm-i5-0", "hm-vegetarian-line", "Jasmine Rice", "From today's lunch menu · Vegetarian Line", 875, [.halal]),
-            genItem("hm-i5-1", "hm-vegetarian-line", "Plant Based Sloppy Joe", "From today's lunch menu · Vegetarian Line", 875, [.halal]),
-            genItem("hm-i5-2", "hm-vegetarian-line", "Thai Red Curry Tofu", "From today's lunch menu · Vegetarian Line", 875, [.halal]),
-            genItem("hm-i5-3", "hm-vegetarian-line", "Thai Stir Fried Green Beans", "From today's lunch menu · Vegetarian Line", 875, [.halal]),
+            genItem("hm-i5-0", "hm-vegetarian-line", "Plant Based Sloppy Joe", "From today's lunch menu · Vegetarian Line", 875, [.halal]),
+            genItem("hm-i5-1", "hm-vegetarian-line", "Thai Red Curry Tofu", "From today's lunch menu · Vegetarian Line", 875, [.halal]),
+            genItem("hm-i5-2", "hm-vegetarian-line", "Thai Stir Fried Green Beans", "From today's lunch menu · Vegetarian Line", 875, [.halal]),
+            genItem("hm-i5-3", "hm-vegetarian-line", "Turmeric Basmati Rice", "From today's lunch menu · Vegetarian Line", 875, [.halal]),
         ]),
         MenuCategory(id: "hm-pasta-bar", locationId: "d0000000-0000-4000-8000-000000000004", name: "Pasta Bar", sortOrder: 6, items: [
             genItem("hm-i6-0", "hm-pasta-bar", "Cauliflower w/Peppers, Pumpkin Seeds & Chives", "From today's lunch menu · Pasta Bar", 875, [.halal]),
-            genItem("hm-i6-1", "hm-pasta-bar", "Gnocchi w/Rstd Tomatoes, Basil & Stracciatella", "From today's lunch menu · Pasta Bar", 875, [.vegetarian]),
-            genItem("hm-i6-2", "hm-pasta-bar", "Greek Beans w/Mint & Tomato", "From today's lunch menu · Pasta Bar", 875, [.halal]),
-            genItem("hm-i6-3", "hm-pasta-bar", "Homemade Mid Eastern Hummus", "From today's lunch menu · Pasta Bar", 875, [.halal]),
-            genItem("hm-i6-4", "hm-pasta-bar", "Marinara Sauce", "From today's lunch menu · Pasta Bar", 875, [.halal]),
-            genItem("hm-i6-5", "hm-pasta-bar", "Mediterranean Pasta Salad", "From today's lunch menu · Pasta Bar", 875, [.vegetarian]),
-            genItem("hm-i6-6", "hm-pasta-bar", "Mushroom Cream Sauce", "From today's lunch menu · Pasta Bar", 875, [.halal, .vegetarian]),
-            genItem("hm-i6-7", "hm-pasta-bar", "Penne Pasta", "From today's lunch menu · Pasta Bar", 875, [.halal]),
-            genItem("hm-i6-8", "hm-pasta-bar", "Penne w/Mushrooms, Tomatoes & Spinach", "From today's lunch menu · Pasta Bar", 875, [.halal, .vegetarian]),
-            genItem("hm-i6-9", "hm-pasta-bar", "Roasted Pepper, Olive & Feta Salad", "From today's lunch menu · Pasta Bar", 875, [.halal, .vegetarian]),
-            genItem("hm-i6-10", "hm-pasta-bar", "Whole Grain Spaghetti", "From today's lunch menu · Pasta Bar", 875, [.halal]),
+            genItem("hm-i6-1", "hm-pasta-bar", "Greek Beans w/Mint & Tomato", "From today's lunch menu · Pasta Bar", 875, [.halal]),
+            genItem("hm-i6-2", "hm-pasta-bar", "Homemade Mid Eastern Hummus", "From today's lunch menu · Pasta Bar", 875, [.halal]),
+            genItem("hm-i6-3", "hm-pasta-bar", "Marinara Sauce", "From today's lunch menu · Pasta Bar", 875, [.halal]),
+            genItem("hm-i6-4", "hm-pasta-bar", "Mediterranean Pasta Salad", "From today's lunch menu · Pasta Bar", 875, [.vegetarian]),
+            genItem("hm-i6-5", "hm-pasta-bar", "Mushroom Cream Sauce", "From today's lunch menu · Pasta Bar", 875, [.halal, .vegetarian]),
+            genItem("hm-i6-6", "hm-pasta-bar", "Penne Pasta", "From today's lunch menu · Pasta Bar", 875, [.halal]),
+            genItem("hm-i6-7", "hm-pasta-bar", "Penne w/Mushrooms, Tomatoes & Spinach", "From today's lunch menu · Pasta Bar", 875, [.halal, .vegetarian]),
+            genItem("hm-i6-8", "hm-pasta-bar", "Roasted Pepper, Olive & Feta Salad", "From today's lunch menu · Pasta Bar", 875, [.halal, .vegetarian]),
+            genItem("hm-i6-9", "hm-pasta-bar", "Whole Grain Spaghetti", "From today's lunch menu · Pasta Bar", 875, [.halal]),
         ]),
         MenuCategory(id: "hm-desserts", locationId: "d0000000-0000-4000-8000-000000000004", name: "Desserts", sortOrder: 7, items: [
             genItem("hm-i7-0", "hm-desserts", "Mint Brownie", "From today's lunch menu · Desserts", 350, [.vegetarian]),
@@ -384,8 +379,8 @@ enum GeneratedUMassCatalog {
             genItem("hm-i13-0", "hm-street-food", "Pad Thai w/Peanuts", "From today's lunch menu · Street Food", 995, [.halal]),
             genItem("hm-i13-1", "hm-street-food", "Stir Fried Vegetables w/Sesame", "From today's lunch menu · Street Food", 995, [.halal]),
             genItem("hm-i13-2", "hm-street-food", "Thai Basil Tofu", "From today's lunch menu · Street Food", 995, [.halal]),
-            genItem("hm-i13-3", "hm-street-food", "Thai Garlic Pepper Pork (Oyster)", "From today's lunch menu · Street Food", 995, []),
-            genItem("hm-i13-4", "hm-street-food", "Thai Red Curry Chicken", "From today's lunch menu · Street Food", 995, []),
+            genItem("hm-i13-3", "hm-street-food", "Thai Red Curry Chicken", "From today's lunch menu · Street Food", 995, []),
+            genItem("hm-i13-4", "hm-street-food", "Vegetable Spring Rolls", "From today's lunch menu · Street Food", 995, [.vegetarian]),
         ]),
     ]
 

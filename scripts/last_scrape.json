@@ -8,8 +8,8 @@
     },
     "franklin": {
       "meal": "Lunch",
-      "stations": 14,
-      "items": 49
+      "stations": 13,
+      "items": 47
     },
     "berkshire": {
       "meal": "Lunch",
@@ -19,7 +19,7 @@
     "hampshire": {
       "meal": "Lunch",
       "stations": 14,
-      "items": 56
+      "items": 55
     }
   }
 }
