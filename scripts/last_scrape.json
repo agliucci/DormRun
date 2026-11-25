@@ -4,22 +4,22 @@
     "worcester": {
       "meal": "Lunch",
       "stations": 10,
-      "items": 57
+      "items": 54
     },
     "franklin": {
       "meal": "Lunch",
-      "stations": 16,
-      "items": 60
+      "stations": 14,
+      "items": 49
     },
     "berkshire": {
       "meal": "Lunch",
-      "stations": 11,
-      "items": 34
+      "stations": 12,
+      "items": 46
     },
     "hampshire": {
       "meal": "Lunch",
-      "stations": 13,
-      "items": 54
+      "stations": 14,
+      "items": 52
     }
   }
 }
